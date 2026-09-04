@@ -20,9 +20,9 @@ Helpers are `SECURITY DEFINER` with `search_path = public, pg_temp`. `EXECUTE` i
 |---|---|---|
 | `clinics` | SELECT own clinic | SELECT own clinic |
 | `clinic_staff` | none | SELECT own clinic |
-| `patients` | SELECT own | SELECT/INSERT/UPDATE |
+| `patients` | SELECT own | SELECT/INSERT (no bind-column UPDATE) |
 | `action_catalog_items` | none | SELECT/INSERT/UPDATE |
-| `treatments` | SELECT own | SELECT/INSERT/UPDATE |
+| `treatments` | SELECT own | SELECT/INSERT/UPDATE except `pilot_cohort` |
 | `treatment_periods` | SELECT own treatment | SELECT/INSERT/UPDATE |
 | `treatment_milestones` | SELECT own | SELECT/INSERT/UPDATE |
 | `action_assignments` | SELECT own | SELECT/INSERT/UPDATE |
@@ -33,11 +33,13 @@ Helpers are `SECURITY DEFINER` with `search_path = public, pg_temp`. `EXECUTE` i
 | `doctor_milestone_photos` | SELECT own treatment | SELECT/INSERT |
 | `feedback_surveys` | SELECT/INSERT own | SELECT |
 | `product_events` | INSERT own ids only | SELECT clinic-scoped; INSERT if derived `clinic_id` matches |
-| `patient_invites` | none | SELECT/INSERT/UPDATE |
+| `patient_invites` | none | SELECT; issue/revoke via RPC |
 
 `anon` has no table privileges.
 
 Patients cannot mark treatment complete: no effective UPDATE on `treatments` plus a trigger that rejects status changes when the caller is a patient.
+
+`patients.auth_user_id`, consent columns, `patients.pilot_cohort`, and `treatments.pilot_cohort` cannot be written by staff, patients, or anon. Bind is `activate_patient_from_invite` (SECURITY DEFINER, EXECUTE granted only to `service_role`). See [invite-links.md](invite-links.md).
 
 `product_events.clinic_id` is set from the patient/treatment row. A client-supplied `clinic_id` is overwritten.
 

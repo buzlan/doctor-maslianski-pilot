@@ -889,6 +889,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_patient_from_invite: {
+        Args: {
+          p_auth_user_id: string
+          p_consent_document_version: string
+          p_pilot_consent_accepted: boolean
+          p_privacy_accepted: boolean
+          p_token_hash_hex: string
+        }
+        Returns: {
+          bound_auth_user_id: string
+          outcome: string
+        }[]
+      }
       assert_storage_ref: {
         Args: { p_bucket: string; p_content_type: string; p_path: string }
         Returns: undefined
@@ -897,9 +910,32 @@ export type Database = {
       current_patient_id: { Args: never; Returns: string }
       current_staff_clinic_id: { Args: never; Returns: string }
       is_staff: { Args: never; Returns: boolean }
+      issue_patient_invite: {
+        Args: {
+          p_pilot_cohort: Database["public"]["Enums"]["pilot_cohort"]
+          p_treatment_id: string
+          p_ttl_days?: number
+        }
+        Returns: Json
+      }
+      lookup_patient_invite_by_hash: {
+        Args: { p_token_hash_hex: string }
+        Returns: {
+          bound_auth_user_id: string
+          consumed_at: string
+          expires_at: string
+          invite_id: string
+          invite_status: Database["public"]["Enums"]["invite_status"]
+          recovery_eligible: boolean
+        }[]
+      }
       patient_belongs_to_clinic: {
         Args: { p_clinic_id: string; p_patient_id: string }
         Returns: boolean
+      }
+      revoke_patient_invite: {
+        Args: { p_invite_id: string }
+        Returns: undefined
       }
       storage_doctor_photo_readable: {
         Args: { object_name: string }

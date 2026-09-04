@@ -45,7 +45,7 @@ A change supersedes the current row and inserts a new `current` row. There is at
 |---|---|
 | `clinics` | `time_zone`, optional contact fields |
 | `clinic_staff` | `auth_user_id` required |
-| `patients` | `auth_user_id` nullable until invite activation; consent timestamps + `consent_document_version` |
+| `patients` | `auth_user_id` nullable until invite activation; consent timestamps + `consent_document_version`. Bind columns are activation-RPC only. |
 | `action_catalog_items` | `title` required, `instruction` nullable |
 | `treatments` | one `active` per patient; `clinic_id` copied from patient |
 | `treatment_periods` | current period is `ended_on IS NULL` |
@@ -58,7 +58,7 @@ A change supersedes the current row and inserts a new `current` row. There is at
 | `doctor_milestone_photos` | attached to a milestone |
 | `feedback_surveys` | both scores `NOT NULL` 1–5; treatment must be `completed` |
 | `product_events` | analytics only; `clinic_id` derived; no jsonb |
-| `patient_invites` | `token_hash` only; no medical columns |
+| `patient_invites` | `token_hash` only; no medical columns. Issue/revoke/consume are RPCs. Pending TTL default 7 days. Recovery remint window is 15 minutes after `consumed_at`. |
 
 ## ProductEvent allowlist
 

@@ -20,6 +20,14 @@ API: http://127.0.0.1:54321
 
 Copy local keys into `.env` from `npx supabase status -o env`. Never commit `.env`. Never ship `service_role` in the patient app.
 
+Issue a local invite (prints `doctormaslianski://invite/{token}` once):
+
+```bash
+node scripts/issue-invite.mjs --treatment 10000000-0000-4000-8000-000000000021 --cohort internal_dry_run
+```
+
+See [invite-links.md](invite-links.md).
+
 ## Seed
 
 Synthetic only. Not clinical content. Not real patients.

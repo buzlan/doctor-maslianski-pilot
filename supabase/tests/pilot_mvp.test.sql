@@ -664,7 +664,7 @@ SELECT is(
   'staff A cannot select clinic B product_events'
 );
 
-SELECT lives_ok(
+SELECT throws_ok(
   $$INSERT INTO public.patient_invites (
       clinic_id, patient_id, treatment_id, token_hash, expires_at,
       created_by_staff_id, pilot_cohort
@@ -677,13 +677,9 @@ SELECT lives_ok(
       '10000000-0000-4000-8000-000000000011',
       'internal_dry_run'
     )$$,
-  'staff can create a hashed invite'
-);
-
-SELECT is(
-  (SELECT count(*)::int FROM public.patient_invites WHERE token_hash IS NOT NULL),
-  1,
-  'invite stores token_hash'
+  '42501',
+  NULL,
+  'staff cannot insert patient_invites directly'
 );
 
 SELECT pg_temp.logout();
@@ -892,17 +888,6 @@ SELECT throws_ok(
   'patient cannot insert into another clinic patient-photos path'
 );
 SELECT pg_temp.logout();
-
--- Invite hash is not a raw token
-SELECT is(
-  (
-    SELECT encode(token_hash, 'hex') = encode(digest('synthetic-invite-token', 'sha256'), 'hex')
-    FROM public.patient_invites
-    LIMIT 1
-  ),
-  true,
-  'invite token_hash is SHA-256 of the secret, not the raw token'
-);
 
 SELECT * FROM finish();
 ROLLBACK;
