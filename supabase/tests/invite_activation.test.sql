@@ -88,10 +88,11 @@ $$;
 GRANT EXECUTE ON FUNCTION pg_temp.token_hash_hex(text) TO authenticated, service_role;
 
 -- Unactivated patient for invite issue (seed patient is also unactivated).
-INSERT INTO public.patients (id, clinic_id)
+INSERT INTO public.patients (id, clinic_id, clinic_label)
 VALUES (
   'd0000000-0000-4000-8000-000000000020',
-  '10000000-0000-4000-8000-000000000001'
+  '10000000-0000-4000-8000-000000000001',
+  'Synthetic Invite Patient'
 );
 
 INSERT INTO public.treatments (id, patient_id, clinic_id, status)
@@ -452,10 +453,11 @@ SELECT pg_temp.create_auth_user(
   'patient.bind.synthetic@local.test'
 );
 
-INSERT INTO public.patients (id, clinic_id, auth_user_id)
+INSERT INTO public.patients (id, clinic_id, clinic_label, auth_user_id)
 VALUES (
   'd0000000-0000-4000-8000-0000000000ac',
   '10000000-0000-4000-8000-000000000001',
+  'Synthetic Bound Patient',
   'd0000000-0000-4000-8000-0000000000ab'
 );
 
@@ -482,10 +484,11 @@ SELECT throws_ok(
 RESET ROLE;
 
 -- Expired pending invite is marked expired on lookup
-INSERT INTO public.patients (id, clinic_id)
+INSERT INTO public.patients (id, clinic_id, clinic_label)
 VALUES (
   'd0000000-0000-4000-8000-000000000030',
-  '10000000-0000-4000-8000-000000000001'
+  '10000000-0000-4000-8000-000000000001',
+  'Synthetic Expired Invite Patient'
 );
 INSERT INTO public.treatments (id, patient_id, clinic_id, status)
 VALUES (

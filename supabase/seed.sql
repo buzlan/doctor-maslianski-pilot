@@ -81,10 +81,11 @@ VALUES (
   'Synthetic Staff'
 );
 
-INSERT INTO public.patients (id, clinic_id, auth_user_id, pilot_cohort)
+INSERT INTO public.patients (id, clinic_id, clinic_label, auth_user_id, pilot_cohort)
 VALUES (
   '10000000-0000-4000-8000-000000000020',
   '10000000-0000-4000-8000-000000000001',
+  'Synthetic Patient',
   NULL,
   NULL
 );

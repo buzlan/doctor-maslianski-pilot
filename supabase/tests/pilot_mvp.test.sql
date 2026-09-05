@@ -146,23 +146,26 @@ VALUES (
   'Synthetic Staff B'
 );
 
-INSERT INTO public.patients (id, clinic_id, auth_user_id, pilot_cohort)
+INSERT INTO public.patients (id, clinic_id, clinic_label, auth_user_id, pilot_cohort)
 VALUES
   (
     'c0000000-0000-4000-8000-0000000000a0',
     '10000000-0000-4000-8000-000000000001',
+    'Synthetic Patient A',
     'c0000000-0000-4000-8000-0000000000a1',
     'internal_dry_run'
   ),
   (
     'c0000000-0000-4000-8000-0000000000a3',
     '10000000-0000-4000-8000-000000000001',
+    'Synthetic Patient A2',
     'c0000000-0000-4000-8000-0000000000a2',
     'internal_dry_run'
   ),
   (
     'c0000000-0000-4000-8000-0000000000b0',
     'c0000000-0000-4000-8000-000000000002',
+    'Synthetic Patient B',
     'c0000000-0000-4000-8000-0000000000b1',
     'internal_dry_run'
   );

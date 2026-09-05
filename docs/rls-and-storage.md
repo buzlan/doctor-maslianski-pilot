@@ -13,6 +13,7 @@ Helpers are `SECURITY DEFINER` with `search_path = public, pg_temp`. `EXECUTE` i
 | `patient_belongs_to_clinic(patient_id, clinic_id)` | true only for the caller’s own patient or staff clinic |
 | `treatment_in_staff_clinic(treatment_id)` | treatment in caller’s staff clinic |
 | `treatment_owned_by_current_patient(treatment_id)` | treatment owned by caller’s patient |
+| `can_subscribe_treatment_topic(topic)` | true when topic is `treatment:{uuid}` and the caller may SELECT that treatment |
 
 ## Policy matrix
 
@@ -20,7 +21,7 @@ Helpers are `SECURITY DEFINER` with `search_path = public, pg_temp`. `EXECUTE` i
 |---|---|---|
 | `clinics` | SELECT own clinic | SELECT own clinic |
 | `clinic_staff` | none | SELECT own clinic |
-| `patients` | SELECT own | SELECT/INSERT (no bind-column UPDATE) |
+| `patients` | SELECT own | SELECT/INSERT; UPDATE `clinic_label` only (no bind-column UPDATE) |
 | `action_catalog_items` | none | SELECT/INSERT/UPDATE |
 | `treatments` | SELECT own | SELECT/INSERT/UPDATE except `pilot_cohort` |
 | `treatment_periods` | SELECT own treatment | SELECT/INSERT/UPDATE |
@@ -41,6 +42,12 @@ Patients cannot mark treatment complete: no effective UPDATE on `treatments` plu
 
 `patients.auth_user_id`, consent columns, `patients.pilot_cohort`, and `treatments.pilot_cohort` cannot be written by staff, patients, or anon. Bind is `activate_patient_from_invite` (SECURITY DEFINER, EXECUTE granted only to `service_role`). See [invite-links.md](invite-links.md).
 
+Staff may UPDATE only `patients.clinic_label` and `patients.updated_at`.
+
+TASK-034 SECURITY INVOKER RPCs (`create_unactivated_patient`, `assign_catalog_item_to_treatment`, `start_new_treatment_period`, `replace_current_appointment`): EXECUTE revoked from `PUBLIC` and `anon`, granted to `authenticated`. Each fails when `current_staff_clinic_id()` is absent. They do not bypass RLS.
+
+Draft catalog items cannot be assigned: the assign RPC and a BEFORE INSERT trigger both require `approved` and copy catalog wording.
+
 `product_events.clinic_id` is set from the patient/treatment row. A client-supplied `clinic_id` is overwritten.
 
 ## Storage
@@ -53,5 +60,15 @@ Both buckets are **private**. Objects are read with short-lived signed URLs at r
 | `doctor-milestone-photos` | `{clinic_id}/{treatment_id}/{milestone_id}/{photo_id}.{ext}` | clinic staff | owning patient + clinic staff |
 
 No UPDATE/DELETE policies on clinical photo objects in TASK-029.
+
+## Realtime
+
+Realtime is notification-only. Canonical reads still go through the table policies above.
+
+Postgres Changes is published for: `patients`, `diary_entries`, `patient_photos`, `feedback_surveys`, `treatments`, `treatment_periods`, `action_assignments`, `appointments`, `treatment_milestones`, `doctor_milestone_photos`.
+
+`action_completions` is not published. Postgres Changes does not apply RLS to DELETE. Completions notify via private Broadcast (`realtime.send`) on topic `treatment:{treatmentId}` with `{ "hint": "action_completions" }` only. Subscribe is authorized by `realtime.messages` SELECT plus `can_subscribe_treatment_topic`. Clients cannot INSERT on that topic.
+
+Realtime filters are traffic scoping, not authorization.
 
 Allowed MIME types: `image/jpeg`, `image/png`, `image/heic`, `image/heif`, `image/webp`.

@@ -3,3 +3,7 @@
 .idea
 .vscode
 *.log
+node_modules
+dist
+clinic-review/.env
+clinic-review/.env.local

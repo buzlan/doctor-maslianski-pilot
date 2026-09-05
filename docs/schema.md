@@ -45,14 +45,14 @@ A change supersedes the current row and inserts a new `current` row. There is at
 |---|---|
 | `clinics` | `time_zone`, optional contact fields |
 | `clinic_staff` | `auth_user_id` required |
-| `patients` | `auth_user_id` nullable until invite activation; consent timestamps + `consent_document_version`. Bind columns are activation-RPC only. |
-| `action_catalog_items` | `title` required, `instruction` nullable |
+| `patients` | `clinic_label` required (1–120 trimmed chars, clinic-facing, may be identifying). `auth_user_id` nullable until invite activation; consent timestamps + `consent_document_version`. Bind columns are activation-RPC only. Never put `clinic_label` in ProductEvent, QR, analytics, or logs. |
+| `action_catalog_items` | `title` required, `instruction` nullable. Editing title/instruction on an `approved` row forces `draft`. |
 | `treatments` | one `active` per patient; `clinic_id` copied from patient |
-| `treatment_periods` | current period is `ended_on IS NULL` |
+| `treatment_periods` | current period is `ended_on IS NULL`. Clinic transition is `start_new_treatment_period`. |
 | `treatment_milestones` | clinic `title`; optional `kind` (no clinical enum) |
-| `action_assignments` | copied `title`; copied `instruction` (nullable) |
+| `action_assignments` | copied `title`; copied `instruction` (nullable). Insert copies approved catalog wording; title/instruction/`catalog_item_id` are immutable after insert. |
 | `action_completions` | unique `(assignment_id, completed_on)` |
-| `appointments` | see datetime section |
+| `appointments` | see datetime section. Clinic replacement is `replace_current_appointment`. |
 | `diary_entries` | unique `(treatment_id, submitted_on)`; VAS 0–10; wellbeing enum; immutable |
 | `patient_photos` | unique `(treatment_id, submitted_on, slot)` slot 1–3 |
 | `doctor_milestone_photos` | attached to a milestone |
@@ -71,3 +71,7 @@ Do not store diary answers, free text, photo paths/URLs, instructions, diagnoses
 ## Integrity
 
 Triggers reject (or overwrite `clinic_id` from the parent) when denormalized ids do not match. Diary and patient photos additionally require `treatments.status = active`. Completions require an active, in-range assignment. Patients cannot change `treatments.status`.
+
+Assignment insert requires an `approved` catalog item and overwrites title/instruction from that row. Catalog wording edits on approved items force `draft` and do not rewrite existing assignments.
+
+Clinic write RPCs (SECURITY INVOKER, staff-only): `create_unactivated_patient`, `assign_catalog_item_to_treatment`, `start_new_treatment_period`, `replace_current_appointment`. EXECUTE is granted to `authenticated` only. RLS remains authoritative.

@@ -1,0 +1,166 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  line-height: 1.45;
+  color: #1b1b1b;
+  background: #f4f1ea;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+a {
+  color: #2457c5;
+}
+
+header.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  background: #fff;
+  border-bottom: 1px solid #ddd4c4;
+}
+
+header.app-header nav {
+  display: flex;
+  gap: 1rem;
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 0.75rem;
+}
+
+section {
+  background: #fff;
+  border: 1px solid #ddd4c4;
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: flex-end;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #c8c1b4;
+  border-radius: 6px;
+  background: #fff;
+}
+
+button {
+  padding: 0.45rem 0.8rem;
+  border: 1px solid #2457c5;
+  border-radius: 6px;
+  background: #2457c5;
+  color: #fff;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #fff;
+  color: #2457c5;
+}
+
+button.danger {
+  background: #8a1f1f;
+  border-color: #8a1f1f;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.45rem 0.35rem;
+  border-bottom: 1px solid #eee6d8;
+  vertical-align: top;
+}
+
+.muted {
+  color: #6b6458;
+}
+
+.error {
+  color: #8a1f1f;
+}
+
+.banner {
+  padding: 0.7rem 0.85rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.banner.error {
+  background: #f8e6e6;
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.photo-grid img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #eee;
+}
+
+.qr-box {
+  display: inline-block;
+  padding: 0.75rem;
+  background: #fff;
+  border: 1px solid #ddd4c4;
+}
+
+.login-card {
+  max-width: 360px;
+  margin: 4rem auto;
+}

@@ -633,6 +633,7 @@ export type Database = {
         Row: {
           auth_user_id: string | null
           clinic_id: string
+          clinic_label: string
           consent_document_version: string | null
           created_at: string
           id: string
@@ -644,6 +645,7 @@ export type Database = {
         Insert: {
           auth_user_id?: string | null
           clinic_id: string
+          clinic_label: string
           consent_document_version?: string | null
           created_at?: string
           id?: string
@@ -655,6 +657,7 @@ export type Database = {
         Update: {
           auth_user_id?: string | null
           clinic_id?: string
+          clinic_label?: string
           consent_document_version?: string | null
           created_at?: string
           id?: string
@@ -906,6 +909,19 @@ export type Database = {
         Args: { p_bucket: string; p_content_type: string; p_path: string }
         Returns: undefined
       }
+      assign_catalog_item_to_treatment: {
+        Args: {
+          p_catalog_item_id: string
+          p_end_date: string
+          p_start_date: string
+          p_treatment_id: string
+        }
+        Returns: string
+      }
+      create_unactivated_patient: {
+        Args: { p_clinic_label: string; p_started_on: string }
+        Returns: Json
+      }
       current_patient_clinic_id: { Args: never; Returns: string }
       current_patient_id: { Args: never; Returns: string }
       current_staff_clinic_id: { Args: never; Returns: string }
@@ -933,9 +949,21 @@ export type Database = {
         Args: { p_clinic_id: string; p_patient_id: string }
         Returns: boolean
       }
+      replace_current_appointment: {
+        Args: { p_treatment_id: string; p_wall_clock: string }
+        Returns: string
+      }
       revoke_patient_invite: {
         Args: { p_invite_id: string }
         Returns: undefined
+      }
+      start_new_treatment_period: {
+        Args: {
+          p_ended_on: string
+          p_started_on: string
+          p_treatment_id: string
+        }
+        Returns: string
       }
       storage_doctor_photo_readable: {
         Args: { object_name: string }
