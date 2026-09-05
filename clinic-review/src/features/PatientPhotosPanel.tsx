@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { DOCTOR_PHOTO_SIGNED_URL_TTL_SECONDS } from '../lib/photo';
 import { supabase } from '../lib/supabase';
+import { EmptyState } from '../ui/primitives';
 
 export type PatientPhotoRow = {
   id: string;
@@ -37,26 +38,26 @@ export function PatientPhotosPanel({ photos }: { photos: PatientPhotoRow[] }) {
   }, [photos]);
 
   return (
-    <section>
-      <h2>Фото пациента</h2>
+    <section className="card">
+      <h2 className="card-title">Фото пациента</h2>
       {photos.length === 0 ? (
-        <p className="muted">Пациент ещё не отправлял фото.</p>
+        <EmptyState title="Пациент ещё не отправлял фото" />
       ) : (
         <div className="photo-grid">
           {photos.map((photo) => {
             const url = urls[photo.id];
             return (
-              <div key={photo.id}>
-                <p className="muted">
-                  {photo.submitted_on} · слот {photo.slot}
-                </p>
+              <div key={photo.id} className="photo-tile">
                 {url === undefined ? (
-                  <p className="muted">Загрузка…</p>
+                  <p className="photo-caption">Загрузка…</p>
                 ) : url === null ? (
-                  <p className="muted">Не удалось получить подписанный URL.</p>
+                  <p className="photo-caption">Не удалось получить подписанный URL.</p>
                 ) : (
                   <img src={url} alt="" />
                 )}
+                <p className="photo-caption">
+                  {photo.submitted_on} · слот {photo.slot}
+                </p>
               </div>
             );
           })}

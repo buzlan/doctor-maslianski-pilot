@@ -3,6 +3,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { assignmentCompletionView } from '../lib/completions';
 import { publicErrorMessage } from '../lib/errors';
 import { supabase } from '../lib/supabase';
+import { Badge, EmptyState, Field } from '../ui/primitives';
 
 export type AssignmentRow = {
   id: string;
@@ -87,16 +88,15 @@ export function AssignmentsPanel({
   }
 
   return (
-    <section>
-      <h2>Назначения</h2>
+    <section className="card">
+      <h2 className="card-title">Назначения</h2>
       {error !== null ? <p className="error">{error}</p> : null}
       {treatmentActive ? (
         catalog.length === 0 ? (
           <p className="muted">Нет утверждённых пунктов каталога. Сначала утвердите формулировку.</p>
         ) : (
-          <form className="row" onSubmit={(event) => void assign(event)}>
-            <label>
-              Пункт каталога
+          <form className="form-grid" onSubmit={(event) => void assign(event)}>
+            <Field label="Пункт каталога">
               <select
                 value={catalogItemId}
                 onChange={(event) => setCatalogItemId(event.target.value)}
@@ -107,25 +107,23 @@ export function AssignmentsPanel({
                   </option>
                 ))}
               </select>
-            </label>
-            <label>
-              С
+            </Field>
+            <Field label="С">
               <input
                 type="date"
                 value={startDate}
                 onChange={(event) => setStartDate(event.target.value)}
                 required
               />
-            </label>
-            <label>
-              По
+            </Field>
+            <Field label="По">
               <input
                 type="date"
                 value={endDate}
                 onChange={(event) => setEndDate(event.target.value)}
                 required
               />
-            </label>
+            </Field>
             <button type="submit" disabled={busy}>
               Назначить
             </button>
@@ -136,28 +134,25 @@ export function AssignmentsPanel({
       )}
 
       {assignments.length === 0 ? (
-        <p className="muted">Назначений пока нет.</p>
+        <EmptyState title="Назначений пока нет" />
       ) : (
         assignments.map((assignment) => {
           const view = assignmentCompletionView(completions, assignment.id, defaultDate);
           return (
-            <div key={assignment.id}>
-              <h3>
-                {assignment.title}{' '}
-                <span className="muted">
-                  {assignment.start_date} — {assignment.end_date} ·{' '}
+            <div key={assignment.id} className="assignment-item">
+              <div className="row" style={{ alignItems: 'center' }}>
+                <h3 style={{ margin: 0 }}>{assignment.title}</h3>
+                <Badge tone={assignment.status === 'active' ? 'success' : 'neutral'}>
                   {assignment.status === 'active' ? 'активно' : 'отключено'}
-                </span>
-              </h3>
-              {assignment.instruction !== null ? <p>{assignment.instruction}</p> : null}
-              <p>
-                Сегодня:{' '}
-                {view.completedToday ? (
-                  <strong>выполнено</strong>
-                ) : (
-                  <span className="muted">не отмечено</span>
-                )}
+                </Badge>
+                <Badge tone={view.completedToday ? 'success' : 'warning'}>
+                  Сегодня: {view.completedToday ? 'выполнено' : 'не отмечено'}
+                </Badge>
+              </div>
+              <p className="muted">
+                {assignment.start_date} — {assignment.end_date}
               </p>
+              {assignment.instruction !== null ? <p>{assignment.instruction}</p> : null}
               {assignment.status === 'active' && treatmentActive ? (
                 <button
                   type="button"
@@ -171,11 +166,7 @@ export function AssignmentsPanel({
               {view.historicalDates.length === 0 ? (
                 <p className="muted">Других отметок нет.</p>
               ) : (
-                <ul>
-                  {view.historicalDates.map((date) => (
-                    <li key={`${assignment.id}-${date}`}>{date}</li>
-                  ))}
-                </ul>
+                <p className="muted">Ранее: {view.historicalDates.join(', ')}</p>
               )}
             </div>
           );

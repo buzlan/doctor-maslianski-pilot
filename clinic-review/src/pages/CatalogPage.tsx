@@ -3,6 +3,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useStaffAuth } from '../auth/StaffAuth';
 import { publicErrorMessage } from '../lib/errors';
 import { supabase } from '../lib/supabase';
+import { Badge, EmptyState, Field, PageNotice } from '../ui/primitives';
 
 type CatalogItem = {
   id: string;
@@ -67,9 +68,10 @@ export function CatalogPage() {
       .from('action_catalog_items')
       .update({
         title: item.title.trim(),
-        instruction: item.instruction === null || item.instruction.trim().length === 0
-          ? null
-          : item.instruction.trim(),
+        instruction:
+          item.instruction === null || item.instruction.trim().length === 0
+            ? null
+            : item.instruction.trim(),
       })
       .eq('id', item.id);
     setBusy(false);
@@ -95,99 +97,85 @@ export function CatalogPage() {
   }
 
   return (
-    <>
+    <div className="catalog-page">
       <h1>Каталог действий</h1>
       <p className="muted">
         Title обязателен, инструкция необязательна. Утверждённый текст копируется в назначение.
         Изменение формулировки снова делает пункт черновиком.
       </p>
-      {error !== null ? <p className="banner error">{error}</p> : null}
+      {error !== null ? <PageNotice tone="error">{error}</PageNotice> : null}
 
-      <section>
-        <h2>Новый пункт</h2>
-        <form className="row" onSubmit={(event) => void onCreate(event)}>
-          <label>
-            Название
+      <section className="card">
+        <h2 className="card-title">Новый пункт</h2>
+        <form className="form-grid" onSubmit={(event) => void onCreate(event)}>
+          <Field label="Название">
             <input value={title} onChange={(event) => setTitle(event.target.value)} required />
-          </label>
-          <label>
-            Инструкция
-            <input
-              value={instruction}
-              onChange={(event) => setInstruction(event.target.value)}
-            />
-          </label>
+          </Field>
+          <Field label="Инструкция">
+            <input value={instruction} onChange={(event) => setInstruction(event.target.value)} />
+          </Field>
           <button type="submit" disabled={busy}>
             Добавить черновик
           </button>
         </form>
       </section>
 
-      <section>
-        <h2>Пункты клиники</h2>
+      <section className="card" style={{ marginTop: '0.9rem' }}>
+        <h2 className="card-title">Пункты клиники</h2>
         {items.length === 0 ? (
-          <p className="muted">Каталог пуст. Добавьте и утвердите формулировку клиники.</p>
+          <EmptyState
+            title="Каталог пуст"
+            body="Добавьте и утвердите формулировку клиники."
+          />
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Название</th>
-                <th>Инструкция</th>
-                <th>Статус</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    <input
-                      value={item.title}
-                      onChange={(event) =>
-                        setItems((current) =>
-                          current.map((row) =>
-                            row.id === item.id ? { ...row, title: event.target.value } : row,
-                          ),
-                        )
-                      }
-                    />
-                  </td>
-                  <td>
-                    <input
-                      value={item.instruction ?? ''}
-                      onChange={(event) =>
-                        setItems((current) =>
-                          current.map((row) =>
-                            row.id === item.id
-                              ? { ...row, instruction: event.target.value }
-                              : row,
-                          ),
-                        )
-                      }
-                    />
-                  </td>
-                  <td>{item.status === 'approved' ? 'утверждено' : 'черновик'}</td>
-                  <td className="row">
-                    <button
-                      type="button"
-                      className="secondary"
-                      disabled={busy}
-                      onClick={() => void saveItem(item)}
-                    >
-                      Сохранить
-                    </button>
-                    {item.status === 'draft' ? (
-                      <button type="button" disabled={busy} onClick={() => void approve(item.id)}>
-                        Утвердить
-                      </button>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          items.map((item) => (
+            <div key={item.id} className="catalog-item">
+              <div className="form-grid">
+                <Field label="Название">
+                  <input
+                    value={item.title}
+                    onChange={(event) =>
+                      setItems((current) =>
+                        current.map((row) =>
+                          row.id === item.id ? { ...row, title: event.target.value } : row,
+                        ),
+                      )
+                    }
+                  />
+                </Field>
+                <Field label="Инструкция">
+                  <input
+                    value={item.instruction ?? ''}
+                    onChange={(event) =>
+                      setItems((current) =>
+                        current.map((row) =>
+                          row.id === item.id ? { ...row, instruction: event.target.value } : row,
+                        ),
+                      )
+                    }
+                  />
+                </Field>
+                <Badge tone={item.status === 'approved' ? 'success' : 'warning'}>
+                  {item.status === 'approved' ? 'утверждено' : 'черновик'}
+                </Badge>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() => void saveItem(item)}
+                >
+                  Сохранить
+                </button>
+                {item.status === 'draft' ? (
+                  <button type="button" disabled={busy} onClick={() => void approve(item.id)}>
+                    Утвердить
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ))
         )}
       </section>
-    </>
+    </div>
   );
 }

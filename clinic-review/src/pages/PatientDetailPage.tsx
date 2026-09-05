@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 import { useStaffAuth } from '../auth/StaffAuth';
 import { AppointmentsPanel, type AppointmentRow } from '../features/AppointmentsPanel';
@@ -19,16 +19,26 @@ import {
 } from '../features/MilestonesPanel';
 import { PatientPhotosPanel, type PatientPhotoRow } from '../features/PatientPhotosPanel';
 import { PeriodsPanel, type PeriodRow } from '../features/PeriodsPanel';
+import { assignmentCompletionView } from '../lib/completions';
 import {
   clinicToday,
   formatCivilDate,
   parseCivilDate,
   periodDayNumber,
 } from '../lib/civil-date';
+import {
+  avatarTone,
+  initialsFromLabel,
+  shortId,
+  treatmentStatusLabel,
+  treatmentStatusTone,
+} from '../lib/display';
 import { publicErrorMessage } from '../lib/errors';
 import { patientDetailChannels } from '../lib/realtime/patient-detail-bindings';
 import { useRealtimeInvalidation } from '../lib/realtime/use-realtime-invalidation';
 import { supabase } from '../lib/supabase';
+import { Avatar, Badge, EmptyState, KpiCard, PageNotice } from '../ui/primitives';
+import { TabPanel, Tabs } from '../ui/tabs';
 
 type PatientHeader = {
   id: string;
@@ -57,6 +67,25 @@ type DetailState = {
   feedback: FeedbackRow | null;
 };
 
+type DetailTab =
+  | 'overview'
+  | 'assignments'
+  | 'diary'
+  | 'photos'
+  | 'visits'
+  | 'access'
+  | 'feedback';
+
+const TABS: { id: DetailTab; label: string }[] = [
+  { id: 'overview', label: 'Обзор' },
+  { id: 'assignments', label: 'Назначения' },
+  { id: 'diary', label: 'Дневник' },
+  { id: 'photos', label: 'Фото' },
+  { id: 'visits', label: 'Визиты' },
+  { id: 'access', label: 'Доступ' },
+  { id: 'feedback', label: 'Отзыв' },
+];
+
 export function PatientDetailPage() {
   const { patientId } = useParams();
   const { session } = useStaffAuth();
@@ -64,6 +93,7 @@ export function PatientDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [tab, setTab] = useState<DetailTab>('overview');
   const loadGenerationRef = useRef(0);
 
   const load = useCallback(async () => {
@@ -317,33 +347,47 @@ export function PatientDetailPage() {
       ? periodDayNumber(startedOn, clinicToday(session.timeZone))
       : null;
 
+  const dueToday = (state?.assignments ?? []).filter(
+    (assignment) =>
+      assignment.status === 'active' &&
+      assignment.start_date <= today &&
+      assignment.end_date >= today,
+  );
+  const completedTodayCount = dueToday.filter(
+    (assignment) => assignmentCompletionView(state?.completions ?? [], assignment.id, today).completedToday,
+  ).length;
+  const diaryToday = (state?.diary ?? []).some((entry) => entry.submitted_on === today);
+
   return (
-    <>
-      <p>
-        <Link to="/patients">← К списку</Link>
-      </p>
-      {error !== null ? <p className="banner error">{error}</p> : null}
+    <section className="workspace">
+      {error !== null ? <PageNotice tone="error">{error}</PageNotice> : null}
       {state === null ? (
         <p className="muted">Загрузка…</p>
       ) : (
         <>
-          <section>
-            <h1>{state.patient.clinic_label}</h1>
-            <p>
-              Статус лечения:{' '}
-              {state.treatment === null
-                ? 'нет лечения'
-                : state.treatment.status === 'active'
-                  ? 'активно'
-                  : state.treatment.status === 'completed'
-                    ? 'завершено'
-                    : 'отменено'}
-              {' · '}
-              {state.patient.auth_user_id === null ? 'не активирован' : 'активирован'}
-              {dayN !== null ? ` · День ${dayN}` : ''}
-              {currentPeriod !== undefined ? ` · период с ${currentPeriod.started_on}` : ''}
-            </p>
-            <div className="row">
+          <div className="detail-header">
+            <div className="detail-identity">
+              <Avatar
+                label={initialsFromLabel(state.patient.clinic_label)}
+                tone={avatarTone(state.patient.clinic_label)}
+                size="lg"
+              />
+              <div>
+                <h1 className="detail-title">{state.patient.clinic_label}</h1>
+                <div className="detail-meta">
+                  <span>{shortId(state.patient.id)}</span>
+                  <Badge tone={treatmentStatusTone(state.treatment?.status ?? null)}>
+                    {treatmentStatusLabel(state.treatment?.status ?? null)}
+                  </Badge>
+                  <Badge tone={state.patient.auth_user_id === null ? 'warning' : 'success'}>
+                    {state.patient.auth_user_id === null ? 'не активирован' : 'активирован'}
+                  </Badge>
+                  {dayN !== null ? <span>День {dayN}</span> : null}
+                  {currentPeriod !== undefined ? <span>период с {currentPeriod.started_on}</span> : null}
+                </div>
+              </div>
+            </div>
+            <div className="detail-actions">
               <button
                 type="button"
                 className="secondary"
@@ -363,55 +407,102 @@ export function PatientDetailPage() {
                 </button>
               ) : null}
             </div>
-          </section>
+          </div>
 
           {state.treatment === null ? (
-            <p className="muted">У пациента нет лечения.</p>
+            <EmptyState title="У пациента нет лечения" />
           ) : (
             <>
-              <InvitePanel
-                treatmentId={state.treatment.id}
-                activated={state.patient.auth_user_id !== null}
-                treatmentActive={state.treatment.status === 'active'}
-                onChanged={load}
-              />
-              <AssignmentsPanel
-                treatmentId={state.treatment.id}
-                treatmentActive={state.treatment.status === 'active'}
-                assignments={state.assignments}
-                completions={state.completions}
-                catalog={state.catalog}
-                defaultDate={today}
-                onChanged={load}
-              />
-              <DiaryPanel entries={state.diary} />
-              <PatientPhotosPanel photos={state.patientPhotos} />
-              <MilestonesPanel
-                treatmentId={state.treatment.id}
-                treatmentActive={state.treatment.status === 'active'}
-                milestones={state.milestones}
-                photos={state.doctorPhotos}
-                defaultDate={today}
-                onChanged={load}
-              />
-              <AppointmentsPanel
-                treatmentId={state.treatment.id}
-                treatmentActive={state.treatment.status === 'active'}
-                appointments={state.appointments}
-                onChanged={load}
-              />
-              <PeriodsPanel
-                treatmentId={state.treatment.id}
-                treatmentActive={state.treatment.status === 'active'}
-                periods={state.periods}
-                defaultDate={today}
-                onChanged={load}
-              />
-              <FeedbackPanel feedback={state.feedback} />
+              <div className="kpi-row">
+                <KpiCard
+                  label="Период"
+                  value={dayN !== null ? `День ${dayN}` : '—'}
+                  hint={currentPeriod === undefined ? 'Нет текущего периода' : `с ${currentPeriod.started_on}`}
+                  tone="blue"
+                />
+                <KpiCard
+                  label="Назначения сегодня"
+                  value={`${completedTodayCount} / ${dueToday.length}`}
+                  hint={dueToday.length === 0 ? 'Нет активных на сегодня' : 'отмечено из активных'}
+                  tone="green"
+                  current={completedTodayCount}
+                  total={dueToday.length}
+                />
+                <KpiCard
+                  label="Дневник"
+                  value={diaryToday ? 'есть сегодня' : 'нет сегодня'}
+                  hint={`${state.diary.length} записей всего`}
+                  tone="amber"
+                />
+                <KpiCard
+                  label="Фото пациента"
+                  value={String(state.patientPhotos.length)}
+                  hint={state.feedback === null ? 'отзыв ещё не отправлен' : 'отзыв получен'}
+                  tone="purple"
+                />
+              </div>
+
+              <Tabs items={TABS} value={tab} onChange={setTab} />
+
+              <TabPanel active={tab === 'overview'}>
+                <div className="section-grid">
+                  <PeriodsPanel
+                    treatmentId={state.treatment.id}
+                    treatmentActive={state.treatment.status === 'active'}
+                    periods={state.periods}
+                    defaultDate={today}
+                    onChanged={load}
+                  />
+                  <AppointmentsPanel
+                    treatmentId={state.treatment.id}
+                    treatmentActive={state.treatment.status === 'active'}
+                    appointments={state.appointments}
+                    onChanged={load}
+                  />
+                </div>
+              </TabPanel>
+              <TabPanel active={tab === 'assignments'}>
+                <AssignmentsPanel
+                  treatmentId={state.treatment.id}
+                  treatmentActive={state.treatment.status === 'active'}
+                  assignments={state.assignments}
+                  completions={state.completions}
+                  catalog={state.catalog}
+                  defaultDate={today}
+                  onChanged={load}
+                />
+              </TabPanel>
+              <TabPanel active={tab === 'diary'}>
+                <DiaryPanel entries={state.diary} />
+              </TabPanel>
+              <TabPanel active={tab === 'photos'}>
+                <PatientPhotosPanel photos={state.patientPhotos} />
+              </TabPanel>
+              <TabPanel active={tab === 'visits'}>
+                <MilestonesPanel
+                  treatmentId={state.treatment.id}
+                  treatmentActive={state.treatment.status === 'active'}
+                  milestones={state.milestones}
+                  photos={state.doctorPhotos}
+                  defaultDate={today}
+                  onChanged={load}
+                />
+              </TabPanel>
+              <TabPanel active={tab === 'access'}>
+                <InvitePanel
+                  treatmentId={state.treatment.id}
+                  activated={state.patient.auth_user_id !== null}
+                  treatmentActive={state.treatment.status === 'active'}
+                  onChanged={load}
+                />
+              </TabPanel>
+              <TabPanel active={tab === 'feedback'}>
+                <FeedbackPanel feedback={state.feedback} />
+              </TabPanel>
             </>
           )}
         </>
       )}
-    </>
+    </section>
   );
 }

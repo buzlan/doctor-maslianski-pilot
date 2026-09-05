@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 
 import { publicErrorMessage } from '../lib/errors';
 import { supabase } from '../lib/supabase';
+import { Badge, EmptyState, Field } from '../ui/primitives';
 
 export type PeriodRow = {
   id: string;
@@ -50,37 +51,39 @@ export function PeriodsPanel({
   }
 
   return (
-    <section>
-      <h2>Периоды</h2>
+    <section className="card">
+      <h2 className="card-title">Периоды</h2>
       {error !== null ? <p className="error">{error}</p> : null}
-      {periods.length === 0 ? <p className="muted">Периодов нет.</p> : null}
-      <ul>
+      {periods.length === 0 ? <EmptyState title="Периодов нет" /> : null}
+      <div className="kv">
         {periods.map((period) => (
-          <li key={period.id}>
-            {period.started_on} — {period.ended_on ?? 'текущий'}
-          </li>
+          <div key={period.id} className="kv-row">
+            <span className="kv-label">{period.started_on}</span>
+            <span>
+              {period.ended_on ?? 'текущий'}{' '}
+              {period.ended_on === null ? <Badge tone="success">открыт</Badge> : null}
+            </span>
+          </div>
         ))}
-      </ul>
+      </div>
       {treatmentActive ? (
-        <form className="row" onSubmit={(event) => void startNext(event)}>
-          <label>
-            Конец текущего
+        <form className="form-grid" onSubmit={(event) => void startNext(event)}>
+          <Field label="Конец текущего">
             <input
               type="date"
               value={endedOn}
               onChange={(event) => setEndedOn(event.target.value)}
               required
             />
-          </label>
-          <label>
-            Начало нового
+          </Field>
+          <Field label="Начало нового">
             <input
               type="date"
               value={startedOn}
               onChange={(event) => setStartedOn(event.target.value)}
               required
             />
-          </label>
+          </Field>
           <button type="submit" disabled={busy}>
             Начать новый период
           </button>

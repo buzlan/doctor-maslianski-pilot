@@ -1,10 +1,11 @@
 import { FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import { useStaffAuth } from '../auth/StaffAuth';
 import { clinicToday, formatCivilDate } from '../lib/civil-date';
 import { publicErrorMessage } from '../lib/errors';
 import { supabase } from '../lib/supabase';
+import { Field, PageNotice } from '../ui/primitives';
 
 type CreatedIds = {
   patient_id: string;
@@ -57,41 +58,36 @@ export function PatientNewPage() {
   }
 
   return (
-    <>
-      <p>
-        <Link to="/patients">← К списку</Link>
-      </p>
-      <section>
+    <section className="workspace">
+      <div className="card">
         <h1>Новый пациент</h1>
         <p className="muted">
           Создаётся неактивированный пациент, активное лечение sclerotherapy и первый период. Cohort
           назначается только при приглашении.
         </p>
-        {error !== null ? <p className="banner error">{error}</p> : null}
-        <form className="row" onSubmit={(event) => void onSubmit(event)}>
-          <label>
-            Метка клиники
+        {error !== null ? <PageNotice tone="error">{error}</PageNotice> : null}
+        <form className="form-grid" onSubmit={(event) => void onSubmit(event)}>
+          <Field label="Метка клиники">
             <input
               value={label}
               onChange={(event) => setLabel(event.target.value)}
               maxLength={120}
               required
             />
-          </label>
-          <label>
-            Начало периода
+          </Field>
+          <Field label="Начало периода">
             <input
               type="date"
               value={startedOn}
               onChange={(event) => setStartedOn(event.target.value)}
               required
             />
-          </label>
+          </Field>
           <button type="submit" disabled={busy}>
             {busy ? 'Создание…' : 'Создать'}
           </button>
         </form>
-      </section>
-    </>
+      </div>
+    </section>
   );
 }

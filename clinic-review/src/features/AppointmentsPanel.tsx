@@ -3,6 +3,7 @@ import { FormEvent, useState } from 'react';
 import { wallClockFromInput, wallClockInputValue } from '../lib/civil-date';
 import { publicErrorMessage } from '../lib/errors';
 import { supabase } from '../lib/supabase';
+import { EmptyState, Field } from '../ui/primitives';
 
 export type AppointmentRow = {
   id: string;
@@ -53,27 +54,29 @@ export function AppointmentsPanel({
   }
 
   return (
-    <section>
-      <h2>Приёмы</h2>
+    <section className="card">
+      <h2 className="card-title">Приёмы</h2>
       {error !== null ? <p className="error">{error}</p> : null}
       {current === undefined ? (
-        <p className="muted">Текущего приёма нет.</p>
+        <EmptyState title="Текущего приёма нет" />
       ) : (
-        <p>
-          Сейчас: <strong>{current.wall_clock}</strong>
-        </p>
+        <div className="kv">
+          <div className="kv-row">
+            <span className="kv-label">Сейчас</span>
+            <strong>{current.wall_clock}</strong>
+          </div>
+        </div>
       )}
       {treatmentActive ? (
-        <form className="row" onSubmit={(event) => void replace(event)}>
-          <label>
-            Следующий приём (время клиники)
+        <form className="form-grid" onSubmit={(event) => void replace(event)}>
+          <Field label="Следующий приём (время клиники)">
             <input
               type="datetime-local"
               value={wallClock}
               onChange={(event) => setWallClock(event.target.value)}
               required
             />
-          </label>
+          </Field>
           <button type="submit" disabled={busy}>
             Сохранить приём
           </button>

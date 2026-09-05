@@ -153,7 +153,7 @@ export function RequireStaff({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   if (auth.status === 'loading') {
-    return <p className="muted">Загрузка сессии…</p>;
+    return <p className="session-loading">Загрузка сессии…</p>;
   }
 
   if (auth.status !== 'ready' || auth.session === null) {

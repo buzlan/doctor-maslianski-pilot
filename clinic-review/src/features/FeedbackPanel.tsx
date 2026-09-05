@@ -1,3 +1,5 @@
+import { EmptyState } from '../ui/primitives';
+
 export type FeedbackRow = {
   usefulness_score: number;
   clarity_score: number;
@@ -6,15 +8,25 @@ export type FeedbackRow = {
 
 export function FeedbackPanel({ feedback }: { feedback: FeedbackRow | null }) {
   return (
-    <section>
-      <h2>Обратная связь</h2>
+    <section className="card">
+      <h2 className="card-title">Обратная связь</h2>
       {feedback === null ? (
-        <p className="muted">Опрос ещё не отправлен.</p>
+        <EmptyState title="Опрос ещё не отправлен" />
       ) : (
-        <p>
-          Польза: {feedback.usefulness_score} / 5 · Понятность: {feedback.clarity_score} / 5 ·{' '}
-          {feedback.submitted_at.slice(0, 10)}
-        </p>
+        <div className="kv">
+          <div className="kv-row">
+            <span className="kv-label">Польза</span>
+            <strong>{feedback.usefulness_score} / 5</strong>
+          </div>
+          <div className="kv-row">
+            <span className="kv-label">Понятность</span>
+            <strong>{feedback.clarity_score} / 5</strong>
+          </div>
+          <div className="kv-row">
+            <span className="kv-label">Дата</span>
+            <span>{feedback.submitted_at.slice(0, 10)}</span>
+          </div>
+        </div>
       )}
     </section>
   );

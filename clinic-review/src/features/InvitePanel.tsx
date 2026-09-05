@@ -9,6 +9,7 @@ import {
 } from '../lib/invite';
 import { publicErrorMessage } from '../lib/errors';
 import { supabase } from '../lib/supabase';
+import { EmptyState, Field } from '../ui/primitives';
 
 type PendingInvite = {
   id: string;
@@ -130,25 +131,31 @@ export function InvitePanel({ treatmentId, activated, treatmentActive, onChanged
 
   if (activated) {
     return (
-      <section>
-        <h2>Приглашение</h2>
-        <p className="muted">Пациент уже активирован. Повторный выпуск токена невозможен.</p>
+      <section className="card">
+        <h2 className="card-title">Приглашение</h2>
+        <EmptyState
+          title="Пациент уже активирован"
+          body="Повторный выпуск токена невозможен."
+        />
       </section>
     );
   }
 
   if (!treatmentActive) {
     return (
-      <section>
-        <h2>Приглашение</h2>
-        <p className="muted">Приглашение доступно только для активного лечения.</p>
+      <section className="card">
+        <h2 className="card-title">Приглашение</h2>
+        <EmptyState
+          title="Лечение не активно"
+          body="Приглашение доступно только для активного лечения."
+        />
       </section>
     );
   }
 
   return (
-    <section>
-      <h2>Приглашение</h2>
+    <section className="card">
+      <h2 className="card-title">Приглашение</h2>
       {error !== null ? <p className="error">{error}</p> : null}
       {pending !== null && issued === null ? (
         <p className="muted">
@@ -156,22 +163,18 @@ export function InvitePanel({ treatmentId, activated, treatmentActive, onChanged
           показывается.
         </p>
       ) : null}
-      <form className="row" onSubmit={(event) => void issue(event)}>
-        <label>
-          Когорта
+      <form className="form-grid" onSubmit={(event) => void issue(event)}>
+        <Field label="Когорта">
           <select
             value={cohort}
-            onChange={(event) =>
-              setCohort(event.target.value as typeof cohort)
-            }
+            onChange={(event) => setCohort(event.target.value as typeof cohort)}
           >
             <option value="internal_dry_run">internal_dry_run</option>
             <option value="closed_beta">closed_beta</option>
             <option value="clinic_pilot">clinic_pilot</option>
           </select>
-        </label>
-        <label>
-          Срок, дни
+        </Field>
+        <Field label="Срок, дни">
           <input
             type="number"
             min={1}
@@ -179,7 +182,7 @@ export function InvitePanel({ treatmentId, activated, treatmentActive, onChanged
             value={ttlDays}
             onChange={(event) => setTtlDays(Number(event.target.value))}
           />
-        </label>
+        </Field>
         <button type="submit" disabled={busy}>
           Пригласить пациента
         </button>
@@ -190,21 +193,23 @@ export function InvitePanel({ treatmentId, activated, treatmentActive, onChanged
         ) : null}
       </form>
       {issued !== null && inviteUrl !== null ? (
-        <div>
-          <p className="muted">QR содержит только токен. Закройте окно, чтобы забыть токен.</p>
+        <div className="invite-qr" style={{ marginTop: '1rem' }}>
           <div className="qr-box">
             <QRCodeSVG value={inviteUrl} size={192} />
           </div>
-          <p className="row">
-            <button type="button" className="secondary" onClick={() => void copyLink()}>
-              Скопировать ссылку
-            </button>
-            <button type="button" className="secondary" onClick={closeQr}>
-              Закрыть QR
-            </button>
-          </p>
-          {copyStatus === 'copied' ? <p className="muted">Ссылка скопирована</p> : null}
-          {copyStatus === 'failed' ? <p className="error">Не удалось скопировать ссылку</p> : null}
+          <div>
+            <p className="muted">QR содержит только токен. Закройте окно, чтобы забыть токен.</p>
+            <div className="row">
+              <button type="button" onClick={() => void copyLink()}>
+                Скопировать ссылку
+              </button>
+              <button type="button" className="secondary" onClick={closeQr}>
+                Закрыть QR
+              </button>
+            </div>
+            {copyStatus === 'copied' ? <p className="muted">Ссылка скопирована</p> : null}
+            {copyStatus === 'failed' ? <p className="error">Не удалось скопировать ссылку</p> : null}
+          </div>
         </div>
       ) : null}
     </section>

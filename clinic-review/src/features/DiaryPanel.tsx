@@ -1,3 +1,5 @@
+import { EmptyState } from '../ui/primitives';
+
 export type DiaryRow = {
   id: string;
   submitted_on: string;
@@ -14,12 +16,12 @@ const WELLBEING: Record<DiaryRow['wellbeing'], string> = {
 
 export function DiaryPanel({ entries }: { entries: DiaryRow[] }) {
   return (
-    <section>
-      <h2>Дневник</h2>
+    <section className="card">
+      <h2 className="card-title">Дневник</h2>
       {entries.length === 0 ? (
-        <p className="muted">Записей дневника нет.</p>
+        <EmptyState title="Записей дневника нет" />
       ) : (
-        <table>
+        <table className="data-table">
           <thead>
             <tr>
               <th>Дата</th>

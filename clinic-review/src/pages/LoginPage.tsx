@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 
 import { useStaffAuth } from '../auth/StaffAuth';
+import { Field, PageNotice } from '../ui/primitives';
 
 export function LoginPage() {
   const auth = useStaffAuth();
@@ -23,16 +24,17 @@ export function LoginPage() {
   }
 
   return (
-    <main>
+    <div className="login-screen">
       <section className="login-card">
         <h1>Вход для персонала</h1>
-        <p className="muted">Публичная регистрация отключена. Используйте выданную учётную запись.</p>
+        <p className="muted">
+          Публичная регистрация отключена. Используйте выданную учётную запись клиники.
+        </p>
         {(error ?? auth.error) !== null ? (
-          <p className="banner error">{error ?? auth.error}</p>
+          <PageNotice tone="error">{error ?? auth.error}</PageNotice>
         ) : null}
-        <form className="row" onSubmit={(event) => void onSubmit(event)}>
-          <label>
-            Email
+        <form className="form-stack" onSubmit={(event) => void onSubmit(event)}>
+          <Field label="Email">
             <input
               type="email"
               autoComplete="username"
@@ -40,9 +42,8 @@ export function LoginPage() {
               onChange={(event) => setEmail(event.target.value)}
               required
             />
-          </label>
-          <label>
-            Пароль
+          </Field>
+          <Field label="Пароль">
             <input
               type="password"
               autoComplete="current-password"
@@ -50,12 +51,12 @@ export function LoginPage() {
               onChange={(event) => setPassword(event.target.value)}
               required
             />
-          </label>
+          </Field>
           <button type="submit" disabled={busy}>
             {busy ? 'Вход…' : 'Войти'}
           </button>
         </form>
       </section>
-    </main>
+    </div>
   );
 }

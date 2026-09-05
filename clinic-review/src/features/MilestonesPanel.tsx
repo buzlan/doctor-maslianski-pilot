@@ -8,6 +8,7 @@ import {
   doctorMilestonePhotoPath,
 } from '../lib/photo';
 import { supabase } from '../lib/supabase';
+import { EmptyState, Field } from '../ui/primitives';
 
 export type MilestoneRow = {
   id: string;
@@ -165,42 +166,39 @@ export function MilestonesPanel({
   }
 
   return (
-    <section>
-      <h2>Визиты и фото врача</h2>
+    <section className="card">
+      <h2 className="card-title">Визиты и фото врача</h2>
       {error !== null ? <p className="error">{error}</p> : null}
       {treatmentActive ? (
-        <form className="row" onSubmit={(event) => void createMilestone(event)}>
-          <label>
-            Название визита
+        <form className="form-grid" onSubmit={(event) => void createMilestone(event)}>
+          <Field label="Название визита">
             <input value={title} onChange={(event) => setTitle(event.target.value)} required />
-          </label>
-          <label>
-            Дата
+          </Field>
+          <Field label="Дата">
             <input
               type="date"
               value={occurredOn}
               onChange={(event) => setOccurredOn(event.target.value)}
               required
             />
-          </label>
+          </Field>
           <button type="submit" disabled={busy}>
             Добавить визит
           </button>
         </form>
       ) : null}
 
-      {milestones.length === 0 ? <p className="muted">Визитов пока нет.</p> : null}
+      {milestones.length === 0 ? <EmptyState title="Визитов пока нет" /> : null}
       {milestones.map((milestone) => {
         const milestonePhotos = photos.filter((photo) => photo.milestone_id === milestone.id);
         return (
-          <div key={milestone.id}>
+          <div key={milestone.id} className="visit-item">
             <h3>
               {milestone.title}{' '}
               <span className="muted">{milestone.occurred_on ?? 'без даты'}</span>
             </h3>
             {treatmentActive ? (
-              <label>
-                Прикрепить фото врача
+              <Field label="Прикрепить фото врача">
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/heic,image/heif,image/webp"
@@ -213,33 +211,43 @@ export function MilestonesPanel({
                     }
                   }}
                 />
-              </label>
+              </Field>
             ) : null}
-            <div className="photo-grid">
-              {milestonePhotos.map((photo) => {
-                const view = views[photo.id];
-                if (view?.url !== undefined && view.url !== null) {
-                  return <img key={photo.id} src={view.url} alt="" />;
-                }
-                return (
-                  <div key={photo.id}>
-                    <p className="muted">Файл ещё не загружен. Повторите загрузку в ту же запись.</p>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/heic,image/heif,image/webp"
-                      disabled={busy}
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        event.target.value = '';
-                        if (file !== undefined) {
-                          void retryUpload(photo, file);
-                        }
-                      }}
-                    />
-                  </div>
-                );
-              })}
-            </div>
+            {milestonePhotos.length === 0 ? (
+              <p className="muted">Фотографий этого визита нет.</p>
+            ) : (
+              <div className="photo-grid">
+                {milestonePhotos.map((photo) => {
+                  const view = views[photo.id];
+                  if (view?.url !== undefined && view.url !== null) {
+                    return (
+                      <div key={photo.id} className="photo-tile">
+                        <img src={view.url} alt="" />
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={photo.id} className="photo-tile">
+                      <p className="photo-caption">
+                        Файл ещё не загружен. Повторите загрузку в ту же запись.
+                      </p>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/heic,image/heif,image/webp"
+                        disabled={busy}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          event.target.value = '';
+                          if (file !== undefined) {
+                            void retryUpload(photo, file);
+                          }
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
       })}
