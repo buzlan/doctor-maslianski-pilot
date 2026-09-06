@@ -1,4 +1,7 @@
 .env
+.env.hosted
+.env.pilot
+.vercel
 .DS_Store
 .idea
 .vscode
@@ -7,3 +10,4 @@ node_modules
 dist
 clinic-review/.env
 clinic-review/.env.local
+.env.local

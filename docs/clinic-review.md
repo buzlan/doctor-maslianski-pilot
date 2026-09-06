@@ -59,6 +59,8 @@ Button «Пригласить пациента» calls `issue_patient_invite` an
 
 The raw token lives only in the open invite panel state. Closing the QR forgets it. It is not written to localStorage, the URL, or the database (Postgres stores `token_hash` only).
 
+Primary device check: copy `doctormaslianski://invite/{token}` and open/tap that URL on the physical iPhone. Camera QR is optional; iOS Camera failing to recognize a non-HTTPS custom-scheme QR is not a TASK-036 blocker.
+
 HTTPS universal links are TASK-037.
 
 ## Realtime

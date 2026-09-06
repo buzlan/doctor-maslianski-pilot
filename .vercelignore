@@ -1,0 +1,11 @@
+.env
+.env.hosted
+.env.pilot
+clinic-review/.env
+clinic-review/.env.local
+clinic-review/.vercel
+**/.DS_Store
+supabase/.temp
+supabase/migrations
+supabase/tests
+supabase/functions

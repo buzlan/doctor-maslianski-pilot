@@ -1,0 +1,7 @@
+{
+  "framework": null,
+  "installCommand": "npm --prefix clinic-review ci",
+  "buildCommand": "npm --prefix clinic-review run build",
+  "outputDirectory": "clinic-review/dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}

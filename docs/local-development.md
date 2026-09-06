@@ -1,8 +1,8 @@
 # Local development (TASK-029)
 
-TASK-029 is complete against the local Supabase stack. A hosted project is not required.
+TASK-029 is complete against the local Supabase stack. Local development remains the default.
 
-Hosted region is **TBD** before any hosted project is created, pending privacy, data-residency, and operational review. Do not treat Frankfurt or any other region as approved in this repository.
+A hosted **Pilot** project is documented in [hosted-pilot.md](hosted-pilot.md). The current Pilot region (`eu-central-1`) is an execution choice for synthetic verification only. It is **not** a standing data-residency approval for real patients. Do not point local `.env` / `clinic-review/.env.local` at the hosted project if you still want the localhost stack.
 
 ## Commands
 
