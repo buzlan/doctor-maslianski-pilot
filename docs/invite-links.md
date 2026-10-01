@@ -8,10 +8,10 @@ This is not the clinic dashboard (TASK-034).
 
 | Environment | URL |
 |---|---|
-| MVP / Expo / local / Pilot device | `doctormaslianski://invite/{token}` |
-| Future store (not implemented here) | `https://app.maslianski.by/invite/{token}` |
+| Issued URL | `https://app.maslianski.by/invite/{token}` |
+| Development build, still accepted by the patient app | `doctormaslianski://invite/{token}` |
 
-Physical-device TASK-036 check: copy the custom-scheme URL from clinic-review and open/tap it on the iPhone. Camera QR is optional. HTTPS Universal Links remain TASK-037.
+Physical-device check: open `https://app.maslianski.by/invite/{token}` from clinic-review. The patient app still accepts `doctormaslianski://invite/{token}` for an installed development build. Hashing, expiry, revoke, and consume are unchanged.
 
 The token is 32 random bytes, unpadded base64url. Postgres stores **only** `digest(convert_to(token, 'UTF8'), 'sha256')`.
 

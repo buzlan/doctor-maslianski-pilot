@@ -12,7 +12,7 @@ const TOKEN = 'abcdefghijklmnopqrstuvwxyzABCDEF';
 describe('invite URL', () => {
   it('builds a custom-scheme URL that contains only the token', () => {
     const url = inviteUrlFromToken(TOKEN);
-    expect(url).toBe(`doctormaslianski://invite/${TOKEN}`);
+    expect(url).toBe(`https://app.maslianski.by/invite/${TOKEN}`);
     expect(url).not.toContain('clinic_label');
     expect(url).not.toContain('patient');
     expect(url).not.toContain('treatment');
@@ -26,7 +26,7 @@ describe('invite URL', () => {
     expect(createInviteState()).toBeNull();
   });
 
-  it('copies only the same custom-scheme URL as the QR payload', async () => {
+  it('copies only the https invite URL used by the QR', async () => {
     const url = inviteUrlFromToken(TOKEN);
     expect(url).not.toBeNull();
     if (url === null) {
@@ -40,7 +40,7 @@ describe('invite URL', () => {
       }, url),
     ).resolves.toBe('copied');
     expect(written).toEqual([url]);
-    expect(written[0]).toBe(`doctormaslianski://invite/${TOKEN}`);
+    expect(written[0]).toBe(`https://app.maslianski.by/invite/${TOKEN}`);
     expect(written[0]).not.toContain('clinic_label');
   });
 
@@ -49,9 +49,12 @@ describe('invite URL', () => {
       'failed',
     );
     await expect(
+      copyInviteUrl(async () => {}, `doctormaslianski://invite/${TOKEN}`),
+    ).resolves.toBe('failed');
+    await expect(
       copyInviteUrl(async () => {
         throw new Error('denied');
-      }, `doctormaslianski://invite/${TOKEN}`),
+      }, `https://app.maslianski.by/invite/${TOKEN}`),
     ).resolves.toBe('failed');
   });
 

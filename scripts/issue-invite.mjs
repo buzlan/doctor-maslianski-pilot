@@ -116,7 +116,7 @@ if (typeof token !== 'string' || token.length === 0) {
   process.exit(1);
 }
 
-const link = `doctormaslianski://invite/${token}`;
+const link = `https://app.maslianski.by/invite/${token}`;
 process.stdout.write(`${link}\n`);
 process.stdout.write(`expires_at=${issued.expires_at}\n`);
 process.stdout.write(`invite_id=${issued.invite_id}\n`);

@@ -1,5 +1,7 @@
 import { withSupabase } from 'npm:@supabase/server';
 
+import { applyInviteCors, inviteOptionsResponse } from './cors.ts';
+
 const NO_STORE = {
   'Cache-Control': 'no-store',
   'Content-Type': 'application/json',
@@ -204,8 +206,7 @@ async function sessionForUser(
   return mintSession(admin, email);
 }
 
-export default {
-  fetch: withSupabase({ auth: 'publishable' }, async (req, ctx) => {
+const consumeInvite = withSupabase({ auth: 'publishable' }, async (req, ctx) => {
     // The publishable key is the allowed low-privilege project API credential.
     // It is public and extractable from a client bundle. It does not prove
     // that the caller is the official Doctor Maslianski app.
@@ -322,5 +323,16 @@ export default {
       return fail('unusable', 500);
     }
     return json(session);
-  }),
+});
+
+export default {
+  async fetch(req: Request): Promise<Response> {
+    const origin = req.headers.get('Origin');
+    if (req.method === 'OPTIONS') {
+      return inviteOptionsResponse(origin);
+    }
+
+    const response = await consumeInvite(req);
+    return applyInviteCors(response, origin);
+  },
 };

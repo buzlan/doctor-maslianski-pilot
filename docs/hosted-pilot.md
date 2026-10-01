@@ -116,7 +116,7 @@ Auth Site URL + redirects are `https://doctor-maslianski-clinic-review.vercel.ap
 
 ## Invite verification
 
-Primary path: copy `doctormaslianski://invite/{token}` from the dashboard, open/tap it on the physical iPhone, confirm the development build activates the synthetic patient.
+Primary path: open `https://app.maslianski.by/invite/{token}` from the dashboard on the phone and confirm the patient app activates the synthetic patient.
 
 Camera QR is optional. iOS Camera failing to open a non-HTTPS custom-scheme QR is not a blocker. HTTPS Universal Links are TASK-037.
 
