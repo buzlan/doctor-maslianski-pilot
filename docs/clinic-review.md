@@ -88,3 +88,23 @@ With local Supabase, clinic-review, and the patient app open on the same activat
 5. Background the phone, change an assignment, foreground — data is current and only one treatment channel exists.
 
 Repeat on iOS Simulator, Android Emulator, and the dashboard browser.
+
+## Catalog action icons
+
+Catalog actions support optional PNG, WebP, or JPEG icons up to 2 MiB.
+The browser decodes and converts uploads to a 256×256 PNG, preserving proportions.
+New actions are created without an icon first, then the file is uploaded and its
+path is saved. If upload fails, the draft remains and the UI explains how to retry.
+Existing icons can be replaced or cleared without changing approval or wording.
+All linked assignments use the current catalog icon on the next refresh.
+
+Uploads use unique paths and never overwrite existing files. Saving uses a
+comparison with the previous path to detect concurrent edits. Old files are
+removed via Storage API after saving; failed saves clean up unused new uploads.
+Cleanup failures are queued in browser storage by staff user and clinic and can
+be retried with **Повторить очистку**. If browser storage is unavailable the retry
+queue lasts for the current page session. Icon previews use refreshed signed URLs.
+
+Patient clients should call `get_assignment_icons` with their treatment ID, then
+resolve the returned paths with signed URLs. Mobile rendering is maintained in
+the separate patient repository.

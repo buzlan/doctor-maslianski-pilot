@@ -829,3 +829,235 @@ button:disabled {
     display: none;
   }
 }
+
+.action-icon-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.action-icon-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.action-icon-preview { width: 44px; height: 44px; object-fit: contain; flex-shrink: 0; }
+
+button.action-icon-button {
+  padding: 0.3rem 0.55rem;
+  min-height: 30px;
+  border-color: var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+button.action-icon-button:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+button.action-icon-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button.action-icon-button-remove {
+  border-color: transparent;
+}
+
+button.action-icon-button-remove:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* Give the catalog room for fields and icon controls on desktop. */
+.catalog-page {
+  max-width: 1440px;
+  width: 100%;
+}
+
+button.action-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 32px;
+  padding: 0.35rem 0.6rem;
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+button.action-icon-button-remove {
+  border-color: var(--line);
+  color: var(--text-secondary);
+}
+
+/* Catalog fields stay bounded rather than stretching across the page. */
+.catalog-edit-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(200px, 300px) minmax(180px, 240px) max-content;
+  justify-content: start;
+  align-items: end;
+  gap: 1rem;
+}
+
+.catalog-create-row {
+  grid-template-columns: minmax(160px, 220px) minmax(200px, 300px) max-content max-content;
+  justify-content: start;
+}
+
+.catalog-edit-row > .field {
+  min-width: 0;
+}
+
+.catalog-edit-row > .field input {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+}
+
+.catalog-edit-row > .badge {
+  justify-self: start;
+  width: fit-content;
+  white-space: nowrap;
+  align-self: end;
+  margin-bottom: 7px;
+}
+
+.catalog-row-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.catalog-row-actions button,
+.catalog-create-row > button {
+  height: 38px;
+  font-size: 0.84rem;
+}
+
+.catalog-item {
+  padding: 1.2rem 0;
+}
+
+.catalog-item .action-icon-controls {
+  min-height: 38px;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+}
+
+.catalog-item .action-icon-preview {
+  width: 34px;
+  height: 34px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-muted);
+}
+
+.catalog-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-bottom: 1rem;
+  margin-bottom: 0.2rem;
+}
+
+.catalog-section-heading .card-title {
+  margin: 0;
+}
+
+
+@media (max-width: 1350px) and (min-width: 1101px) {
+  .catalog-edit-row {
+    grid-template-columns: 200px minmax(220px, 300px) 1fr;
+  }
+
+  .catalog-row-actions {
+    grid-column: 2 / -1;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 900px) {
+  .catalog-edit-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .catalog-row-actions {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 560px) {
+  .catalog-edit-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .catalog-row-actions {
+    justify-content: flex-start;
+  }
+
+  .catalog-create-row > button {
+    justify-self: start;
+  }
+}
+
+button.action-icon-button {
+  color: var(--accent);
+}
+
+button.action-icon-button-remove {
+  color: var(--danger);
+}
+
+.catalog-create-row {
+  column-gap: 0.75rem;
+}
+
+@media (max-width: 900px) {
+  .catalog-create-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .catalog-create-row > button {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 560px) {
+  .catalog-create-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+button.action-icon-button {
+  height: 38px;
+  min-height: 38px;
+  padding: 0.48rem 0.85rem;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 0.84rem;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+button.action-icon-button-remove {
+  border-color: var(--accent);
+}
+
+button.action-icon-button-remove:hover:not(:disabled) {
+  border-color: var(--accent);
+}
