@@ -52,7 +52,36 @@ Draft catalog items cannot be assigned: the assign RPC and a BEFORE INSERT trigg
 
 ## Storage
 
-Both buckets are **private**. Objects are read with short-lived signed URLs at read time (TASK-032 / clinic review). Do not store public URLs. Do not copy paths into `product_events`.
+All buckets are **private**. Objects are read with short-lived signed URLs at read time (TASK-032 / clinic review). Do not store public URLs. Do not copy paths into `product_events`.
+
+`action-icons` is reserved for catalog action icons: PNG, WebP, or JPEG, up to
+2 MiB (2,097,152 bytes) per file. Its bucket configuration is introduced by
+`20261006140000_action_icons_bucket.sql`. The access policies in
+`20261006142000_action_icons_access.sql` use object paths
+`{clinic_id}/{catalog_item_id}/{unique_file_name}.{ext}`. Staff may insert and
+read icons only for existing catalog actions in their own clinic. Patients may
+read only the current catalog icon of an action assigned to their own treatment.
+Changing or clearing `icon_storage_path` changes patient access without rewriting
+assignments. Catalog table access itself remains staff-only.
+
+`20261006143000_catalog_icon_validation.sql` validates catalog icon references
+on INSERT and on updates of the icon path, clinic, or action ID. Non-null paths
+must match the action and clinic, use a supported extension, and reference an
+existing object in `action-icons`. NULL clears the icon. Create the catalog
+action first without an icon, upload the file, then save its path. Changing only
+the icon preserves catalog approval.
+
+`20261006144000_action_icons_delete_and_patient_read.sql` permits staff to
+DELETE unused icons of their own clinic. A trigger protects referenced objects,
+including privileged deletes. Reference validation locks the object with KEY
+SHARE; deletion locks that row, protecting against simultaneous saves/deletes.
+No UPDATE policy is provided: replacements always upload to a new path.
+Delete actual files through the Storage API, never direct SQL.
+
+`get_assignment_icons(p_treatment_id)` returns `assignment_id` and nullable
+`icon_storage_path` for the caller's own treatment or staff clinic. Catalog table
+access stays staff-only. Fetch this RPC on screen refresh, then obtain short-lived
+signed URLs from `action-icons`; do not persist signed URLs as catalog data.
 
 | Bucket | Path | Insert | Select |
 |---|---|---|---|
