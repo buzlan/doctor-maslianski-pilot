@@ -15,6 +15,7 @@ import {
 import { DiaryPanel, type DiaryRow } from "../features/DiaryPanel";
 import { FeedbackPanel, type FeedbackRow } from "../features/FeedbackPanel";
 import { InvitePanel } from "../features/InvitePanel";
+import { TestPushPanel } from "../features/TestPushPanel";
 import {
   MilestonesPanel,
   type DoctorPhotoRow,
@@ -56,6 +57,7 @@ type PatientHeader = {
   id: string;
   clinic_label: string;
   auth_user_id: string | null;
+  pilot_cohort: "internal_dry_run" | "closed_beta" | "clinic_pilot" | null;
 };
 
 type TreatmentRow = {
@@ -117,7 +119,7 @@ export function PatientDetailPage() {
 
     const { data: patient, error: patientError } = await supabase
       .from("patients")
-      .select("id, clinic_label, auth_user_id")
+      .select("id, clinic_label, auth_user_id, pilot_cohort")
       .eq("id", patientId)
       .maybeSingle();
 
@@ -554,6 +556,10 @@ export function PatientDetailPage() {
                   activated={state.patient.auth_user_id !== null}
                   treatmentActive={state.treatment.status === "active"}
                   onChanged={load}
+                />
+                <TestPushPanel
+                  patientId={state.patient.id}
+                  cohort={state.patient.pilot_cohort}
                 />
               </TabPanel>
               <TabPanel active={tab === "feedback"}>

@@ -373,6 +373,23 @@ allow_dynamic_registration = false
 [functions.consume-patient-invite]
 verify_jwt = false
 
+# Gateway JWT verification blocks the CORS preflight. create-web-session-handoff
+# still requires a user JWT inside the function. consume-web-session-handoff
+# accepts the publishable key plus the one-time handoff token.
+[functions.create-web-session-handoff]
+verify_jwt = false
+
+[functions.consume-web-session-handoff]
+verify_jwt = false
+
+# Cron and staff test calls authenticate inside the function.
+# Gateway JWT verification would block the clinic CORS preflight.
+[functions.evaluate-patient-notifications]
+verify_jwt = false
+
+[functions.send-test-push]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

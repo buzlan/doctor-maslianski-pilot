@@ -32,6 +32,24 @@ export function AppointmentsPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  async function cancel() {
+    if (current === undefined) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const { error: updateError } = await supabase
+      .from('appointments')
+      .update({ status: 'superseded', superseded_at: new Date().toISOString() })
+      .eq('id', current.id);
+    setBusy(false);
+    if (updateError) {
+      setError(publicErrorMessage(updateError, 'Не удалось отменить приём.'));
+      return;
+    }
+    await onChanged();
+  }
+
   async function replace(event: FormEvent) {
     event.preventDefault();
     const payload = wallClockFromInput(wallClock);
@@ -80,6 +98,18 @@ export function AppointmentsPanel({
           <button type="submit" disabled={busy}>
             Сохранить приём
           </button>
+          {current !== undefined ? (
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={() => {
+                void cancel();
+              }}
+            >
+              Отменить запись
+            </button>
+          ) : null}
         </form>
       ) : null}
       {appointments.filter((item) => item.status === 'superseded').length > 0 ? (
