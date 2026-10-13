@@ -4,9 +4,12 @@ import {
   clinicToday,
   dayIndex,
   formatCivilDate,
+  formatWallClock,
   parseCivilDate,
   periodDayNumber,
   wallClockFromInput,
+  wallClockFromParts,
+  wallClockParts,
 } from '../lib/civil-date';
 
 describe('civil dates', () => {
@@ -39,5 +42,15 @@ describe('civil dates', () => {
   it('rejects a wall-clock value that includes Z', () => {
     expect(wallClockFromInput('2026-09-15T14:30:00Z')).toBeNull();
     expect(wallClockFromInput('2026-09-15T14:30')).toBe('2026-09-15T14:30:00');
+  });
+
+  it('formats a clinic wall clock as day.month.year and 24-hour time', () => {
+    expect(formatWallClock('2026-10-11T18:25:00')).toBe('11.10.2026, 18:25');
+    expect(wallClockFromParts('2026-10-11', '18', '25')).toBe('2026-10-11T18:25:00');
+    expect(wallClockParts('2026-10-11 18:25:00')).toEqual({
+      date: '2026-10-11',
+      hour: '18',
+      minute: '25',
+    });
   });
 });

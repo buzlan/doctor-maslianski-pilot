@@ -64,8 +64,8 @@ export function PatientNewPage() {
       <div className="card">
         <h1>Новый пациент</h1>
         <p className="muted">
-          Создаётся неактивированный пациент, активное лечение sclerotherapy и первый период. Cohort
-          назначается только при приглашении.
+          Создаётся неактивированный пациент и активное лечение sclerotherapy. День лечения
+          считается от даты начала. Cohort назначается только при приглашении.
         </p>
         {error !== null ? <PageNotice tone="error">{error}</PageNotice> : null}
         <form className="form-grid" onSubmit={(event) => void onSubmit(event)}>
@@ -77,7 +77,7 @@ export function PatientNewPage() {
               required
             />
           </Field>
-          <Field label="Начало периода">
+          <Field label="Дата начала">
             <input
               type="date"
               value={startedOn}

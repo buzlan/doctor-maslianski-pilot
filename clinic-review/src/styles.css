@@ -489,6 +489,11 @@ h2 {
   align-items: flex-end;
 }
 
+.appointment-preview {
+  flex-basis: 100%;
+  margin: 0.15rem 0 0;
+}
+
 .form-stack {
   display: flex;
   flex-direction: column;

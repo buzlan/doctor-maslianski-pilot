@@ -25,11 +25,11 @@ import {
   PatientPhotosPanel,
   type PatientPhotoRow,
 } from "../features/PatientPhotosPanel";
-import { PeriodsPanel, type PeriodRow } from "../features/PeriodsPanel";
 import { assignmentCompletionView } from "../lib/completions";
 import {
   clinicToday,
   formatCivilDate,
+  formatCivilDateRu,
   parseCivilDate,
   periodDayNumber,
 } from "../lib/civil-date";
@@ -66,6 +66,12 @@ type TreatmentRow = {
   id: string;
   status: "active" | "completed" | "cancelled";
   completed_at: string | null;
+};
+
+type PeriodRow = {
+  id: string;
+  started_on: string;
+  ended_on: string | null;
 };
 
 type DetailState = {
@@ -497,7 +503,7 @@ export function PatientDetailPage() {
                   ) : null}
                   {dayN !== null ? <span>День {dayN}</span> : null}
                   {currentPeriod !== undefined ? (
-                    <span>период с {currentPeriod.started_on}</span>
+                    <span>с {formatCivilDateRu(currentPeriod.started_on)}</span>
                   ) : null}
                 </div>
               </div>
@@ -548,12 +554,12 @@ export function PatientDetailPage() {
             <>
               <div className="kpi-row">
                 <KpiCard
-                  label="Период"
+                  label="День лечения"
                   value={dayN !== null ? `День ${dayN}` : "—"}
                   hint={
                     currentPeriod === undefined
-                      ? "Нет текущего периода"
-                      : `с ${currentPeriod.started_on}`
+                      ? "Дата начала не задана"
+                      : `с ${formatCivilDateRu(currentPeriod.started_on)}`
                   }
                   tone="blue"
                 />
@@ -590,21 +596,12 @@ export function PatientDetailPage() {
               <Tabs items={TABS} value={tab} onChange={setTab} />
 
               <TabPanel active={tab === "overview"}>
-                <div className="section-grid">
-                  <PeriodsPanel
-                    treatmentId={state.treatment.id}
-                    treatmentActive={state.treatment.status === "active"}
-                    periods={state.periods}
-                    defaultDate={today}
-                    onChanged={load}
-                  />
-                  <AppointmentsPanel
-                    treatmentId={state.treatment.id}
-                    treatmentActive={state.treatment.status === "active"}
-                    appointments={state.appointments}
-                    onChanged={load}
-                  />
-                </div>
+                <AppointmentsPanel
+                  treatmentId={state.treatment.id}
+                  treatmentActive={state.treatment.status === "active"}
+                  appointments={state.appointments}
+                  onChanged={load}
+                />
               </TabPanel>
               <TabPanel active={tab === "assignments"}>
                 <AssignmentsPanel

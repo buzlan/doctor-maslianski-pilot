@@ -75,6 +75,45 @@ export function wallClockInputValue(wallClock: string): string {
   return wallClock.trim().replace(' ', 'T').replace(/Z$/i, '').slice(0, 16);
 }
 
+export function formatCivilDateRu(value: string): string {
+  const parsed = parseCivilDate(value);
+  if (parsed === null) {
+    return value;
+  }
+  const day = String(parsed.day).padStart(2, '0');
+  const month = String(parsed.month).padStart(2, '0');
+  return `${day}.${month}.${parsed.year}`;
+}
+
+const WALL_CLOCK_INPUT = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})$/;
+
+export function wallClockParts(
+  wallClock: string,
+): { date: string; hour: string; minute: string } | null {
+  const match = WALL_CLOCK_INPUT.exec(wallClockInputValue(wallClock));
+  if (match === null) {
+    return null;
+  }
+  const hour = Number(match[2]);
+  const minute = Number(match[3]);
+  if (hour > 23 || minute > 59) {
+    return null;
+  }
+  return { date: match[1], hour: match[2], minute: match[3] };
+}
+
+export function wallClockFromParts(date: string, hour: string, minute: string): string | null {
+  return wallClockFromInput(`${date}T${hour}:${minute}`);
+}
+
+export function formatWallClock(wallClock: string): string {
+  const parts = wallClockParts(wallClock);
+  if (parts === null) {
+    return wallClock;
+  }
+  return `${formatCivilDateRu(parts.date)}, ${parts.hour}:${parts.minute}`;
+}
+
 export function wallClockFromInput(value: string): string | null {
   const trimmed = value.trim();
   if (trimmed.length === 0 || /Z$/i.test(trimmed)) {

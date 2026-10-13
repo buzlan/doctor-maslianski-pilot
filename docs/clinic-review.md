@@ -40,7 +40,7 @@ Staff writes go through existing RLS plus SECURITY INVOKER RPCs:
 - `create_unactivated_patient` — patient + active sclerotherapy treatment + first period. Optional test flag.
 - `delete_patient` — purge the patient, related rows, and the linked login. The dashboard then deletes returned photo paths through the Storage API.
 - `assign_catalog_item_to_treatment` — approved catalog only; copies title/instruction
-- `start_new_treatment_period` — close current period and open the next in one transaction
+- `start_new_treatment_period` — still in the database for the patient app. The dashboard does not call it. Creating a patient opens the first period, and «День N» is counted from that date.
 - `replace_current_appointment` — supersede current and insert the new wall-clock row
 - `issue_patient_invite` / `revoke_patient_invite` — existing TASK-033 RPCs
 
@@ -84,7 +84,7 @@ With local Supabase, clinic-review, and the patient app open on the same activat
 
 1. Mark / undo a completion on the phone — dashboard «Сегодня» updates without refresh.
 2. Submit diary and upload a patient photo — those sections update.
-3. From the dashboard, change an assignment, appointment, period, visit, or visit photo — the open mobile screens update.
+3. From the dashboard, change an assignment, appointment, visit, or visit photo — the open mobile screens update.
 4. «Завершить лечение» — mobile tabs disappear and the completed shell appears without reload.
 5. Background the phone, change an assignment, foreground — data is current and only one treatment channel exists.
 

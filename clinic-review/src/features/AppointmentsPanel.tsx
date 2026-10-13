@@ -1,6 +1,10 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 
-import { wallClockFromInput, wallClockInputValue } from '../lib/civil-date';
+import {
+  formatWallClock,
+  wallClockFromParts,
+  wallClockParts,
+} from '../lib/civil-date';
 import { publicErrorMessage } from '../lib/errors';
 import { supabase } from '../lib/supabase';
 import { EmptyState, Field } from '../ui/primitives';
@@ -19,6 +23,9 @@ type Props = {
   onChanged: () => Promise<void>;
 };
 
+const HOURS = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0'));
+const MINUTES = Array.from({ length: 60 }, (_, minute) => String(minute).padStart(2, '0'));
+
 export function AppointmentsPanel({
   treatmentId,
   treatmentActive,
@@ -26,11 +33,27 @@ export function AppointmentsPanel({
   onChanged,
 }: Props) {
   const current = appointments.find((item) => item.status === 'current');
-  const [wallClock, setWallClock] = useState(
-    current === undefined ? '' : wallClockInputValue(current.wall_clock),
-  );
+  const currentClock = current?.wall_clock;
+  const initial = currentClock === undefined ? null : wallClockParts(currentClock);
+  const [date, setDate] = useState(initial?.date ?? '');
+  const [hour, setHour] = useState(initial?.hour ?? '09');
+  const [minute, setMinute] = useState(initial?.minute ?? '00');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const preview = wallClockFromParts(date, hour, minute);
+
+  useEffect(() => {
+    if (currentClock === undefined) {
+      return;
+    }
+    const parts = wallClockParts(currentClock);
+    if (parts === null) {
+      return;
+    }
+    setDate(parts.date);
+    setHour(parts.hour);
+    setMinute(parts.minute);
+  }, [currentClock]);
 
   async function cancel() {
     if (current === undefined) {
@@ -52,16 +75,15 @@ export function AppointmentsPanel({
 
   async function replace(event: FormEvent) {
     event.preventDefault();
-    const payload = wallClockFromInput(wallClock);
-    if (payload === null) {
-      setError('Укажите локальное время клиники без зоны Z.');
+    if (preview === null) {
+      setError('Укажите дату и время приёма.');
       return;
     }
     setBusy(true);
     setError(null);
     const { error: rpcError } = await supabase.rpc('replace_current_appointment', {
       p_treatment_id: treatmentId,
-      p_wall_clock: payload,
+      p_wall_clock: preview,
     });
     setBusy(false);
     if (rpcError) {
@@ -81,21 +103,37 @@ export function AppointmentsPanel({
         <div className="kv">
           <div className="kv-row">
             <span className="kv-label">Сейчас</span>
-            <strong>{current.wall_clock}</strong>
+            <strong>{formatWallClock(current.wall_clock)}</strong>
           </div>
         </div>
       )}
       {treatmentActive ? (
         <form className="form-grid" onSubmit={(event) => void replace(event)}>
-          <Field label="Следующий приём (время клиники)">
-            <input
-              type="datetime-local"
-              value={wallClock}
-              onChange={(event) => setWallClock(event.target.value)}
-              required
-            />
+          <Field label="Дата">
+            <input type="date" value={date} onChange={(event) => setDate(event.target.value)} required />
           </Field>
-          <button type="submit" disabled={busy}>
+          <Field label="Часы">
+            <select value={hour} onChange={(event) => setHour(event.target.value)}>
+              {HOURS.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Минуты">
+            <select value={minute} onChange={(event) => setMinute(event.target.value)}>
+              {MINUTES.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          </Field>
+          {preview !== null ? (
+            <p className="muted appointment-preview">Выбрано: {formatWallClock(preview)}</p>
+          ) : null}
+          <button type="submit" disabled={busy || date.length === 0}>
             Сохранить приём
           </button>
           {current !== undefined ? (
@@ -118,7 +156,7 @@ export function AppointmentsPanel({
             .filter((item) => item.status === 'superseded')
             .map((item) => (
               <li key={item.id} className="muted">
-                заменён: {item.wall_clock}
+                заменён: {formatWallClock(item.wall_clock)}
               </li>
             ))}
         </ul>
