@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 
 import { AssignmentIcon } from "./AssignmentIcon";
 
+import { assignmentHistoryLabel, groupAssignments } from "../lib/assignments";
 import { assignmentCompletionView } from "../lib/completions";
 import { publicErrorMessage } from "../lib/errors";
 import { supabase } from "../lib/supabase";
@@ -145,56 +146,141 @@ export function AssignmentsPanel({
         </p>
       )}
 
-      {assignments.length === 0 ? (
-        <EmptyState title="Назначений пока нет" />
-      ) : (
-        assignments.map((assignment) => {
-          const view = assignmentCompletionView(
-            completions,
-            assignment.id,
-            defaultDate,
-          );
-          return (
+      <AssignmentSections
+        assignments={assignments}
+        completions={completions}
+        today={defaultDate}
+        treatmentActive={treatmentActive}
+        busy={busy}
+        onDisable={(assignmentId) => void disable(assignmentId)}
+      />
+    </section>
+  );
+}
+
+function AssignmentSections({
+  assignments,
+  completions,
+  today,
+  treatmentActive,
+  busy,
+  onDisable,
+}: {
+  assignments: AssignmentRow[];
+  completions: CompletionRow[];
+  today: string;
+  treatmentActive: boolean;
+  busy: boolean;
+  onDisable: (assignmentId: string) => void;
+}) {
+  const groups = groupAssignments(assignments, today);
+
+  if (assignments.length === 0) {
+    return <EmptyState title="Назначений пока нет" />;
+  }
+
+  return (
+    <>
+      <div className="assignment-section">
+        <h3>Сейчас</h3>
+        {groups.current.length === 0 ? (
+          <p className="muted">На сегодня активных назначений нет.</p>
+        ) : (
+          groups.current.map((assignment) => {
+            const view = assignmentCompletionView(completions, assignment.id, today);
+            return (
+              <div key={assignment.id} className="assignment-item">
+                <div className="row" style={{ alignItems: "center" }}>
+                  <AssignmentIcon path={assignment.icon_storage_path} />
+                  <h3 style={{ margin: 0 }}>{assignment.title}</h3>
+                  <Badge tone={view.completedToday ? "success" : "warning"}>
+                    Сегодня: {view.completedToday ? "выполнено" : "не отмечено"}
+                  </Badge>
+                </div>
+                <p className="muted">
+                  {assignment.start_date} — {assignment.end_date}
+                </p>
+                {assignment.instruction !== null ? <p>{assignment.instruction}</p> : null}
+                {treatmentActive ? (
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => onDisable(assignment.id)}
+                  >
+                    Отключить
+                  </button>
+                ) : null}
+                {view.historicalDates.length > 0 ? (
+                  <p className="muted">Отметки: {view.historicalDates.join(", ")}</p>
+                ) : null}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {groups.upcoming.length > 0 ? (
+        <div className="assignment-section">
+          <h3>Ещё не начались</h3>
+          {groups.upcoming.map((assignment) => (
             <div key={assignment.id} className="assignment-item">
               <div className="row" style={{ alignItems: "center" }}>
                 <AssignmentIcon path={assignment.icon_storage_path} />
                 <h3 style={{ margin: 0 }}>{assignment.title}</h3>
-                <Badge
-                  tone={assignment.status === "active" ? "success" : "neutral"}
-                >
-                  {assignment.status === "active" ? "активно" : "отключено"}
-                </Badge>
-                <Badge tone={view.completedToday ? "success" : "warning"}>
-                  Сегодня: {view.completedToday ? "выполнено" : "не отмечено"}
-                </Badge>
               </div>
               <p className="muted">
                 {assignment.start_date} — {assignment.end_date}
               </p>
-              {assignment.instruction !== null ? (
-                <p>{assignment.instruction}</p>
-              ) : null}
-              {assignment.status === "active" && treatmentActive ? (
+              {assignment.instruction !== null ? <p>{assignment.instruction}</p> : null}
+              {treatmentActive ? (
                 <button
                   type="button"
                   className="secondary"
                   disabled={busy}
-                  onClick={() => void disable(assignment.id)}
+                  onClick={() => onDisable(assignment.id)}
                 >
                   Отключить
                 </button>
               ) : null}
-              {view.historicalDates.length === 0 ? (
-                <p className="muted">Других отметок нет.</p>
-              ) : (
-                <p className="muted">
-                  Ранее: {view.historicalDates.join(", ")}
-                </p>
-              )}
             </div>
-          );
-        })
-      )}
-    </section>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="assignment-section">
+        <h3>История</h3>
+        {groups.history.length === 0 ? (
+          <p className="muted">Прошедших назначений пока нет.</p>
+        ) : (
+          groups.history.map((group) => (
+            <div key={group.title} className="assignment-item">
+              <div className="row" style={{ alignItems: "center" }}>
+                <AssignmentIcon path={group.icon_storage_path} />
+                <h3 style={{ margin: 0 }}>{group.title}</h3>
+              </div>
+              <ul className="assignment-history">
+                {group.items.map((assignment) => {
+                  const marks = completions.filter(
+                    (item) => item.assignment_id === assignment.id,
+                  ).length;
+                  return (
+                    <li key={assignment.id}>
+                      <span>
+                        {assignment.start_date} — {assignment.end_date}
+                        {marks > 0 ? ` · отметок ${marks}` : ""}
+                      </span>
+                      <Badge tone="neutral">
+                        {assignmentHistoryLabel(assignment, today)}
+                      </Badge>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))
+        )}
+      </div>
+    </>
   );
 }
