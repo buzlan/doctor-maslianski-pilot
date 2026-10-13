@@ -502,7 +502,7 @@ export function PatientDetailPage() {
             <div className="detail-actions">
               <button
                 type="button"
-                className="secondary"
+                className="ghost"
                 disabled={refreshing}
                 onClick={() => void refresh()}
               >
@@ -511,26 +511,25 @@ export function PatientDetailPage() {
               {state.treatment?.status === "active" ? (
                 <button
                   type="button"
-                  className="danger"
+                  className="secondary"
                   disabled={busy}
                   onClick={() => void completeTreatment()}
                 >
                   Завершить лечение
                 </button>
               ) : null}
+              <label className="check-row detail-test-toggle">
+                <input
+                  type="checkbox"
+                  checked={state.patient.is_test}
+                  disabled={busy}
+                  onChange={(event) => void setTestFlag(event.target.checked)}
+                />
+                Тестовый пациент
+              </label>
               <button
                 type="button"
-                className="secondary"
-                disabled={busy}
-                onClick={() => void setTestFlag(!state.patient.is_test)}
-              >
-                {state.patient.is_test
-                  ? "Снять пометку «тест»"
-                  : "Пометить как тестового"}
-              </button>
-              <button
-                type="button"
-                className="danger"
+                className="danger-quiet detail-actions-end"
                 disabled={busy}
                 onClick={() => void deletePatient()}
               >

@@ -216,7 +216,7 @@ export function PatientListPanel() {
                   {testMark}
                 </span>
               </span>
-              <span className="patient-row-meta">{day}</span>
+              <span className="patient-row-day">{day}</span>
             </button>
           );
         })}
