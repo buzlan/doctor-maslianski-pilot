@@ -494,6 +494,18 @@ h2 {
   margin: 0.15rem 0 0;
 }
 
+.appointment-form {
+  margin-top: 0.95rem;
+}
+
+.appointment-form-label {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
 .form-stack {
   display: flex;
   flex-direction: column;

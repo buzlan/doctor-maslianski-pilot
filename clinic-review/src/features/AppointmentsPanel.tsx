@@ -7,7 +7,7 @@ import {
 } from '../lib/civil-date';
 import { publicErrorMessage } from '../lib/errors';
 import { supabase } from '../lib/supabase';
-import { EmptyState, Field } from '../ui/primitives';
+import { Field } from '../ui/primitives';
 
 export type AppointmentRow = {
   id: string;
@@ -41,6 +41,12 @@ export function AppointmentsPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const preview = wallClockFromParts(date, hour, minute);
+  const currentParts = currentClock === undefined ? null : wallClockParts(currentClock);
+  const sameAsCurrent =
+    currentParts !== null &&
+    date === currentParts.date &&
+    hour === currentParts.hour &&
+    minute === currentParts.minute;
 
   useEffect(() => {
     if (currentClock === undefined) {
@@ -54,24 +60,6 @@ export function AppointmentsPanel({
     setHour(parts.hour);
     setMinute(parts.minute);
   }, [currentClock]);
-
-  async function cancel() {
-    if (current === undefined) {
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    const { error: updateError } = await supabase
-      .from('appointments')
-      .update({ status: 'superseded', superseded_at: new Date().toISOString() })
-      .eq('id', current.id);
-    setBusy(false);
-    if (updateError) {
-      setError(publicErrorMessage(updateError, 'Не удалось отменить приём.'));
-      return;
-    }
-    await onChanged();
-  }
 
   async function replace(event: FormEvent) {
     event.preventDefault();
@@ -98,17 +86,18 @@ export function AppointmentsPanel({
       <h2 className="card-title">Приёмы</h2>
       {error !== null ? <p className="error">{error}</p> : null}
       {current === undefined ? (
-        <EmptyState title="Текущего приёма нет" />
+        <p className="muted">Ближайшего приёма нет</p>
       ) : (
         <div className="kv">
           <div className="kv-row">
-            <span className="kv-label">Сейчас</span>
+            <span className="kv-label">Ближайший</span>
             <strong>{formatWallClock(current.wall_clock)}</strong>
           </div>
         </div>
       )}
       {treatmentActive ? (
-        <form className="form-grid" onSubmit={(event) => void replace(event)}>
+        <form className="form-grid appointment-form" onSubmit={(event) => void replace(event)}>
+          <p className="appointment-form-label">Назначить новый</p>
           <Field label="Дата">
             <input type="date" value={date} onChange={(event) => setDate(event.target.value)} required />
           </Field>
@@ -130,36 +119,13 @@ export function AppointmentsPanel({
               ))}
             </select>
           </Field>
-          {preview !== null ? (
+          {preview !== null && !sameAsCurrent ? (
             <p className="muted appointment-preview">Выбрано: {formatWallClock(preview)}</p>
           ) : null}
           <button type="submit" disabled={busy || date.length === 0}>
-            Сохранить приём
+            Назначить
           </button>
-          {current !== undefined ? (
-            <button
-              type="button"
-              className="secondary"
-              disabled={busy}
-              onClick={() => {
-                void cancel();
-              }}
-            >
-              Отменить запись
-            </button>
-          ) : null}
         </form>
-      ) : null}
-      {appointments.filter((item) => item.status === 'superseded').length > 0 ? (
-        <ul>
-          {appointments
-            .filter((item) => item.status === 'superseded')
-            .map((item) => (
-              <li key={item.id} className="muted">
-                заменён: {formatWallClock(item.wall_clock)}
-              </li>
-            ))}
-        </ul>
       ) : null}
     </section>
   );
