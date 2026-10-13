@@ -30,7 +30,6 @@ export function InvitePanel({ treatmentId, activated, treatmentActive, onChanged
   const [cohort, setCohort] = useState<'internal_dry_run' | 'closed_beta' | 'clinic_pilot'>(
     'internal_dry_run',
   );
-  const [ttlDays, setTtlDays] = useState(7);
   const [error, setError] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<'copied' | 'failed' | null>(null);
   const [busy, setBusy] = useState(false);
@@ -73,7 +72,7 @@ export function InvitePanel({ treatmentId, activated, treatmentActive, onChanged
     const { data, error: rpcError } = await supabase.rpc('issue_patient_invite', {
       p_treatment_id: treatmentId,
       p_pilot_cohort: cohort,
-      p_ttl_days: ttlDays,
+      p_ttl_days: 1,
     });
     setBusy(false);
     if (rpcError) {
@@ -174,15 +173,7 @@ export function InvitePanel({ treatmentId, activated, treatmentActive, onChanged
             <option value="clinic_pilot">clinic_pilot</option>
           </select>
         </Field>
-        <Field label="Срок, дни">
-          <input
-            type="number"
-            min={1}
-            max={30}
-            value={ttlDays}
-            onChange={(event) => setTtlDays(Number(event.target.value))}
-          />
-        </Field>
+        <p className="muted form-note">Код действует 24 часа.</p>
         <button type="submit" disabled={busy}>
           Пригласить пациента
         </button>

@@ -54,7 +54,7 @@ Clinic-facing identifier. It may contain personally identifying text. Display it
 
 ## Invite / QR
 
-Button «Пригласить пациента» calls `issue_patient_invite` and renders a QR for:
+Button «Пригласить пациента» calls `issue_patient_invite` with a fixed 24-hour TTL (`p_ttl_days = 1`) and renders a QR for:
 
 `https://app.maslianski.by/invite/{token}`
 
