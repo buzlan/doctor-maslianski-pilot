@@ -38,7 +38,7 @@ npm run dev
 Staff writes go through existing RLS plus SECURITY INVOKER RPCs:
 
 - `create_unactivated_patient` — patient + active sclerotherapy treatment + first period. Optional test flag.
-- `delete_patient` — purge the patient, related rows, photo files, and the linked login
+- `delete_patient` — purge the patient, related rows, and the linked login. The dashboard then deletes returned photo paths through the Storage API.
 - `assign_catalog_item_to_treatment` — approved catalog only; copies title/instruction
 - `start_new_treatment_period` — close current period and open the next in one transaction
 - `replace_current_appointment` — supersede current and insert the new wall-clock row

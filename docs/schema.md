@@ -81,4 +81,4 @@ field only; authorized patient reads and UI integration are separate steps.
 
 Clinic write RPCs (SECURITY INVOKER, staff-only): `create_unactivated_patient` (optional `p_is_test`, default false), `assign_catalog_item_to_treatment`, `start_new_treatment_period`, `replace_current_appointment`. EXECUTE is granted to `authenticated` only. RLS remains authoritative.
 
-`delete_patient` is SECURITY DEFINER and staff-only. It removes the patient row and dependent clinical data, photo objects, invites, product events, push data, web session handoffs, and the linked auth user. A missing or foreign-clinic id is reported as not found.
+`delete_patient` is SECURITY DEFINER and staff-only. It removes the patient row and dependent clinical data, invites, product events, push data, web session handoffs, and the linked auth user. It returns `patient_photos` and `doctor_milestone_photos` paths. The clinic dashboard deletes those objects through the Storage API, because hosted Postgres rejects direct `DELETE` on `storage.objects`. A missing or foreign-clinic id is reported as not found.

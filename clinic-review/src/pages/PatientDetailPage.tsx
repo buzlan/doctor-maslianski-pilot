@@ -41,6 +41,7 @@ import {
   treatmentStatusTone,
 } from "../lib/display";
 import { publicErrorMessage } from "../lib/errors";
+import { removePurgedPatientPhotos } from "../lib/patient-purge";
 import { patientDetailChannels } from "../lib/realtime/patient-detail-bindings";
 import { useRealtimeInvalidation } from "../lib/realtime/use-realtime-invalidation";
 import { supabase } from "../lib/supabase";
@@ -401,14 +402,27 @@ export function PatientDetailPage() {
       return;
     }
     setBusy(true);
-    const { error: deleteError } = await supabase.rpc("delete_patient", {
+    const { data, error: deleteError } = await supabase.rpc("delete_patient", {
       p_patient_id: state.patient.id,
     });
-    setBusy(false);
     if (deleteError) {
+      setBusy(false);
       setError(publicErrorMessage(deleteError, "Не удалось удалить пациента."));
       return;
     }
+    try {
+      await removePurgedPatientPhotos(supabase, data);
+    } catch (photoError) {
+      setBusy(false);
+      setError(
+        publicErrorMessage(
+          photoError,
+          "Пациент удалён из базы, но фото не удалось стереть из хранилища.",
+        ),
+      );
+      return;
+    }
+    setBusy(false);
     navigate("/patients");
   }
 

@@ -959,7 +959,7 @@ export type Database = {
         Args: {
           p_patient_id: string;
         };
-        Returns: undefined;
+        Returns: Json;
       };
       get_assignment_icons: {
         Args: {
