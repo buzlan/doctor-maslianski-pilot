@@ -46,7 +46,7 @@ A change supersedes the current row and inserts a new `current` row. There is at
 | `clinics` | `time_zone`, optional contact fields |
 | `clinic_staff` | `auth_user_id` required |
 | `patients` | `clinic_label` required (1–120 trimmed chars, clinic-facing, may be identifying). `is_test` is a staff-set flag for internal test accounts, default false, independent of `pilot_cohort`. `auth_user_id` nullable until invite activation; consent timestamps + `consent_document_version`. Bind columns are activation-RPC only. Never put `clinic_label` in ProductEvent, QR, analytics, or logs. |
-| `action_catalog_items` | `title` required, `instruction` nullable. `icon_storage_path` is a nullable object path in the private `action-icons` bucket. Editing title/instruction on an `approved` row forces `draft`; changing only the icon does not. |
+| `action_catalog_items` | `title` required, `instruction` nullable. `icon_storage_path` is a nullable object path in the private `action-icons` bucket. Editing title/instruction on an `approved` row forces `draft`; changing only the icon does not. `delete_catalog_item` removes the item, assignments copied from it, and those assignments' completions. |
 | `treatments` | one `active` per patient; `clinic_id` copied from patient |
 | `treatment_periods` | current period is `ended_on IS NULL`. Clinic transition is `start_new_treatment_period`. |
 | `treatment_milestones` | clinic `title`; optional `kind` (no clinical enum) |

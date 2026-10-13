@@ -40,6 +40,7 @@ Staff writes go through existing RLS plus SECURITY INVOKER RPCs:
 - `create_unactivated_patient` — patient + active sclerotherapy treatment + first period. Optional test flag.
 - `delete_patient` — purge the patient, related rows, and the linked login. The dashboard then deletes returned photo paths through the Storage API.
 - `assign_catalog_item_to_treatment` — approved catalog only; copies title/instruction
+- `delete_catalog_item` — remove a catalog item together with patient assignments and their completion marks. The dashboard then deletes the returned icon path through the Storage API.
 - `start_new_treatment_period` — still in the database for the patient app. The dashboard does not call it. Creating a patient opens the first period, and «День N» is counted from that date.
 - `replace_current_appointment` — supersede current and insert the new wall-clock row
 - `issue_patient_invite` / `revoke_patient_invite` — existing TASK-033 RPCs

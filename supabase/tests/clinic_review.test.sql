@@ -113,6 +113,11 @@ SELECT ok(
 );
 
 SELECT ok(
+  NOT has_function_privilege('anon', 'public.delete_catalog_item(uuid)', 'execute'),
+  'anon cannot execute delete_catalog_item'
+);
+
+SELECT ok(
   NOT has_function_privilege('anon', 'public.assign_catalog_item_to_treatment(uuid, uuid, date, date)', 'execute'),
   'anon cannot execute assign_catalog_item_to_treatment'
 );
@@ -135,6 +140,11 @@ SELECT ok(
 SELECT ok(
   has_function_privilege('authenticated', 'public.delete_patient(uuid)', 'execute'),
   'authenticated can execute delete_patient'
+);
+
+SELECT ok(
+  has_function_privilege('authenticated', 'public.delete_catalog_item(uuid)', 'execute'),
+  'authenticated can execute delete_catalog_item'
 );
 
 -- ---------------------------------------------------------------------------
@@ -1011,6 +1021,152 @@ SELECT is(
   (SELECT count(*)::int FROM public.patients WHERE clinic_label = 'Test Account'),
   1,
   'the other test patient is kept'
+);
+
+-- ---------------------------------------------------------------------------
+-- Catalog item delete removes patient assignments, even when a completion
+-- would refuse a direct DELETE because the assignment is disabled.
+-- ---------------------------------------------------------------------------
+
+SELECT pg_temp.logout();
+
+INSERT INTO public.action_catalog_items (id, clinic_id, title, instruction, status)
+VALUES
+  (
+    'e0000000-0000-4000-8000-0000000000f1',
+    '10000000-0000-4000-8000-000000000001',
+    'Catalog To Delete',
+    'goes away',
+    'approved'
+  ),
+  (
+    'e0000000-0000-4000-8000-0000000000f3',
+    '10000000-0000-4000-8000-000000000001',
+    'Catalog To Keep',
+    NULL,
+    'approved'
+  );
+
+INSERT INTO storage.objects (bucket_id, name) VALUES (
+  'action-icons',
+  '10000000-0000-4000-8000-000000000001/e0000000-0000-4000-8000-0000000000f1/icon.png'
+);
+
+UPDATE public.action_catalog_items
+SET icon_storage_path = '10000000-0000-4000-8000-000000000001/e0000000-0000-4000-8000-0000000000f1/icon.png'
+WHERE id = 'e0000000-0000-4000-8000-0000000000f1';
+
+INSERT INTO public.action_assignments (
+  id, treatment_id, clinic_id, catalog_item_id, title, start_date, end_date, status
+)
+SELECT
+  'e0000000-0000-4000-8000-0000000000f2',
+  t.id,
+  t.clinic_id,
+  'e0000000-0000-4000-8000-0000000000f1',
+  'placeholder',
+  DATE '2026-09-01',
+  DATE '2026-09-01',
+  'active'
+FROM public.treatments t
+JOIN public.patients p ON p.id = t.patient_id
+WHERE p.clinic_label = 'Clinic Label One Edited'
+  AND t.status = 'active'
+LIMIT 1;
+
+INSERT INTO public.action_assignments (
+  id, treatment_id, clinic_id, catalog_item_id, title, start_date, end_date, status
+)
+SELECT
+  'e0000000-0000-4000-8000-0000000000f4',
+  t.id,
+  t.clinic_id,
+  'e0000000-0000-4000-8000-0000000000f3',
+  'placeholder',
+  DATE '2026-09-01',
+  DATE '2026-09-30',
+  'active'
+FROM public.treatments t
+JOIN public.patients p ON p.id = t.patient_id
+WHERE p.clinic_label = 'Clinic Label One Edited'
+  AND t.status = 'active'
+LIMIT 1;
+
+INSERT INTO public.action_completions (
+  assignment_id, treatment_id, patient_id, clinic_id, completed_on
+)
+SELECT
+  a.id,
+  a.treatment_id,
+  t.patient_id,
+  a.clinic_id,
+  DATE '2026-09-01'
+FROM public.action_assignments a
+JOIN public.treatments t ON t.id = a.treatment_id
+WHERE a.id = 'e0000000-0000-4000-8000-0000000000f2';
+
+UPDATE public.action_assignments
+SET status = 'disabled'
+WHERE id = 'e0000000-0000-4000-8000-0000000000f2';
+
+SELECT pg_temp.login('e0000000-0000-4000-8000-0000000000a1');
+SELECT throws_ok(
+  $$SELECT public.delete_catalog_item('e0000000-0000-4000-8000-0000000000f1')$$,
+  '42501',
+  NULL,
+  'patient cannot delete_catalog_item'
+);
+SELECT pg_temp.logout();
+
+SELECT pg_temp.login('e0000000-0000-4000-8000-000000000012');
+SELECT throws_ok(
+  $$SELECT public.delete_catalog_item('e0000000-0000-4000-8000-0000000000f1')$$,
+  'P0002',
+  NULL,
+  'foreign staff cannot delete a catalog item'
+);
+SELECT pg_temp.logout();
+
+SELECT pg_temp.login('10000000-0000-4000-8000-000000000010');
+SELECT lives_ok(
+  $$SELECT public.delete_catalog_item('e0000000-0000-4000-8000-0000000000f1')$$,
+  'staff deletes a catalog item and its assignments'
+);
+SELECT pg_temp.logout();
+
+SELECT is(
+  (SELECT count(*)::int FROM public.action_catalog_items WHERE id = 'e0000000-0000-4000-8000-0000000000f1'),
+  0,
+  'deleted catalog item is gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.action_assignments WHERE id = 'e0000000-0000-4000-8000-0000000000f2'),
+  0,
+  'assignment copied from the deleted item is gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.action_completions WHERE assignment_id = 'e0000000-0000-4000-8000-0000000000f2'),
+  0,
+  'completion of the deleted assignment is gone'
+);
+SELECT is(
+  (
+    SELECT count(*)::int FROM storage.objects
+    WHERE bucket_id = 'action-icons'
+      AND name = '10000000-0000-4000-8000-000000000001/e0000000-0000-4000-8000-0000000000f1/icon.png'
+  ),
+  0,
+  'catalog icon object is gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.action_catalog_items WHERE id = 'e0000000-0000-4000-8000-0000000000f3'),
+  1,
+  'another catalog item is kept'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.action_assignments WHERE id = 'e0000000-0000-4000-8000-0000000000f4'),
+  1,
+  'assignment of another catalog item is kept'
 );
 
 SELECT * FROM finish();

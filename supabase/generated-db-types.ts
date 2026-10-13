@@ -955,6 +955,12 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: string;
       };
+      delete_catalog_item: {
+        Args: {
+          p_item_id: string;
+        };
+        Returns: Json;
+      };
       delete_patient: {
         Args: {
           p_patient_id: string;

@@ -221,6 +221,49 @@ export function CatalogPage() {
     }
   }
 
+  async function removeItem(item: CatalogItem) {
+    const label = item.title.trim() || "этот пункт";
+    if (
+      !window.confirm(
+        `Удалить «${label}» из каталога? Назначения этого действия пропадут у пациентов.`,
+      )
+    ) {
+      return;
+    }
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const { data, error } = await supabase.rpc("delete_catalog_item", {
+        p_item_id: item.id,
+      });
+      if (error) throw error;
+      const path =
+        data !== null &&
+        typeof data === "object" &&
+        "icon_storage_path" in data &&
+        typeof data.icon_storage_path === "string"
+          ? data.icon_storage_path
+          : null;
+      if (path !== null) {
+        try {
+          await removeUnusedIcon(supabase, path);
+        } catch {
+          rememberCleanup([...new Set([...pendingCleanup.current, path])]);
+          setNotice("Пункт удалён, но иконку не удалось стереть из хранилища.");
+        }
+      }
+      await load();
+    } catch (error) {
+      setError(publicErrorMessage(error, "Не удалось удалить пункт каталога."));
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="catalog-page">
       <h1>Каталог действий</h1>
@@ -228,7 +271,8 @@ export function CatalogPage() {
         Название обязательно, инструкция необязательна. Утверждённый текст
         копируется в назначение. Изменение формулировки снова делает пункт
         черновиком. Иконка общая для всех назначений этого действия; её замена
-        не требует повторного утверждения.
+        не требует повторного утверждения. Удаление пункта убирает его
+        назначения у пациентов.
       </p>
       {error !== null ? <PageNotice tone="error">{error}</PageNotice> : null}
       {notice && <PageNotice>{notice}</PageNotice>}
@@ -357,6 +401,14 @@ export function CatalogPage() {
                       Утвердить
                     </button>
                   ) : null}
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={busy}
+                    onClick={() => void removeItem(item)}
+                  >
+                    Удалить пункт
+                  </button>
                 </div>
               </div>
             </div>

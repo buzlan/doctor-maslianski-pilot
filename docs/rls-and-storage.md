@@ -23,7 +23,7 @@ Helpers are `SECURITY DEFINER` with `search_path = public, pg_temp`. `EXECUTE` i
 | `clinic_staff` | none | SELECT own clinic |
 | `patients` | SELECT own | SELECT/INSERT; UPDATE `clinic_label` and `is_test` only (no bind-column UPDATE). Purge is `delete_patient`, not a table DELETE. |
 | `storage.objects` `patient-photos`, `doctor-milestone-photos` | existing read/write rules | DELETE own clinic prefix, used when purging a patient |
-| `action_catalog_items` | none | SELECT/INSERT/UPDATE |
+| `action_catalog_items` | none | SELECT/INSERT/UPDATE. Removal is `delete_catalog_item`, which also deletes that item's assignments and completions. |
 | `treatments` | SELECT own | SELECT/INSERT/UPDATE except `pilot_cohort` |
 | `treatment_periods` | SELECT own treatment | SELECT/INSERT/UPDATE |
 | `treatment_milestones` | SELECT own | SELECT/INSERT/UPDATE |
@@ -60,7 +60,9 @@ All buckets are **private**. Objects are read with short-lived signed URLs at re
 `20261006140000_action_icons_bucket.sql`. The access policies in
 `20261006142000_action_icons_access.sql` use object paths
 `{clinic_id}/{catalog_item_id}/{unique_file_name}.{ext}`. Staff may insert and
-read icons only for existing catalog actions in their own clinic. Patients may
+read icons only for existing catalog actions in their own clinic. After
+`delete_catalog_item` clears the reference, staff may delete that unused object
+in their clinic prefix. Patients may
 read only the current catalog icon of an action assigned to their own treatment.
 Changing or clearing `icon_storage_path` changes patient access without rewriting
 assignments. Catalog table access itself remains staff-only.
