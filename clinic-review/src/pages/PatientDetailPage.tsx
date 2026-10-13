@@ -42,9 +42,11 @@ import {
 } from "../lib/display";
 import { publicErrorMessage } from "../lib/errors";
 import { removePurgedPatientPhotos } from "../lib/patient-purge";
+import { patientDetailTabs, type DetailTab } from "../lib/patient-tabs";
 import { patientDetailChannels } from "../lib/realtime/patient-detail-bindings";
 import { useRealtimeInvalidation } from "../lib/realtime/use-realtime-invalidation";
 import { supabase } from "../lib/supabase";
+import { canSendManualTestPush } from "../lib/test-push";
 import {
   Avatar,
   Badge,
@@ -88,25 +90,6 @@ type DetailState = {
   appointments: AppointmentRow[];
   feedback: FeedbackRow | null;
 };
-
-type DetailTab =
-  | "overview"
-  | "assignments"
-  | "diary"
-  | "photos"
-  | "visits"
-  | "access"
-  | "feedback";
-
-const TABS: { id: DetailTab; label: string }[] = [
-  { id: "overview", label: "Обзор" },
-  { id: "assignments", label: "Назначения" },
-  { id: "diary", label: "Дневник" },
-  { id: "photos", label: "Фото" },
-  { id: "visits", label: "Визиты" },
-  { id: "access", label: "Доступ" },
-  { id: "feedback", label: "Отзыв" },
-];
 
 export function PatientDetailPage() {
   const { patientId } = useParams();
@@ -463,6 +446,14 @@ export function PatientDetailPage() {
   const diaryToday = (state?.diary ?? []).some(
     (entry) => entry.submitted_on === today,
   );
+  const tabs =
+    state === null
+      ? []
+      : patientDetailTabs({
+          activated: state.patient.auth_user_id !== null,
+          isTest: state.patient.is_test,
+        });
+  const activeTab = tabs.some((item) => item.id === tab) ? tab : "overview";
 
   return (
     <section className="workspace">
@@ -593,9 +584,9 @@ export function PatientDetailPage() {
                 />
               </div>
 
-              <Tabs items={TABS} value={tab} onChange={setTab} />
+              <Tabs items={tabs} value={activeTab} onChange={setTab} />
 
-              <TabPanel active={tab === "overview"}>
+              <TabPanel active={activeTab === "overview"}>
                 <AppointmentsPanel
                   treatmentId={state.treatment.id}
                   treatmentActive={state.treatment.status === "active"}
@@ -603,7 +594,7 @@ export function PatientDetailPage() {
                   onChanged={load}
                 />
               </TabPanel>
-              <TabPanel active={tab === "assignments"}>
+              <TabPanel active={activeTab === "assignments"}>
                 <AssignmentsPanel
                   treatmentId={state.treatment.id}
                   treatmentActive={state.treatment.status === "active"}
@@ -614,13 +605,13 @@ export function PatientDetailPage() {
                   onChanged={load}
                 />
               </TabPanel>
-              <TabPanel active={tab === "diary"}>
+              <TabPanel active={activeTab === "diary"}>
                 <DiaryPanel entries={state.diary} />
               </TabPanel>
-              <TabPanel active={tab === "photos"}>
+              <TabPanel active={activeTab === "photos"}>
                 <PatientPhotosPanel photos={state.patientPhotos} />
               </TabPanel>
-              <TabPanel active={tab === "visits"}>
+              <TabPanel active={activeTab === "visits"}>
                 <MilestonesPanel
                   treatmentId={state.treatment.id}
                   treatmentActive={state.treatment.status === "active"}
@@ -630,7 +621,7 @@ export function PatientDetailPage() {
                   onChanged={load}
                 />
               </TabPanel>
-              <TabPanel active={tab === "access"}>
+              <TabPanel active={activeTab === "access"}>
                 <InvitePanel
                   treatmentId={state.treatment.id}
                   activated={state.patient.auth_user_id !== null}
@@ -642,7 +633,22 @@ export function PatientDetailPage() {
                   cohort={state.patient.pilot_cohort}
                 />
               </TabPanel>
-              <TabPanel active={tab === "feedback"}>
+              <TabPanel active={activeTab === "notifications"}>
+                {canSendManualTestPush(state.patient.pilot_cohort) ? (
+                  <TestPushPanel
+                    patientId={state.patient.id}
+                    cohort={state.patient.pilot_cohort}
+                  />
+                ) : (
+                  <section className="card">
+                    <h2 className="card-title">Тестовое уведомление</h2>
+                    <p className="muted">
+                      Отправка доступна для приглашения с cohort internal_dry_run.
+                    </p>
+                  </section>
+                )}
+              </TabPanel>
+              <TabPanel active={activeTab === "feedback"}>
                 <FeedbackPanel feedback={state.feedback} />
               </TabPanel>
             </>
