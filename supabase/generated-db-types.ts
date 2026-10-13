@@ -641,6 +641,7 @@ export type Database = {
           consent_document_version: string | null;
           created_at: string;
           id: string;
+          is_test: boolean;
           pilot_cohort: Database["public"]["Enums"]["pilot_cohort"] | null;
           pilot_consent_accepted_at: string | null;
           privacy_accepted_at: string | null;
@@ -653,6 +654,7 @@ export type Database = {
           consent_document_version?: string | null;
           created_at?: string;
           id?: string;
+          is_test?: boolean;
           pilot_cohort?: Database["public"]["Enums"]["pilot_cohort"] | null;
           pilot_consent_accepted_at?: string | null;
           privacy_accepted_at?: string | null;
@@ -665,6 +667,7 @@ export type Database = {
           consent_document_version?: string | null;
           created_at?: string;
           id?: string;
+          is_test?: boolean;
           pilot_cohort?: Database["public"]["Enums"]["pilot_cohort"] | null;
           pilot_consent_accepted_at?: string | null;
           privacy_accepted_at?: string | null;
@@ -935,6 +938,7 @@ export type Database = {
       create_unactivated_patient: {
         Args: {
           p_clinic_label: string;
+          p_is_test?: boolean;
           p_started_on: string;
         };
         Returns: Json;
@@ -950,6 +954,12 @@ export type Database = {
       current_staff_clinic_id: {
         Args: Record<PropertyKey, never>;
         Returns: string;
+      };
+      delete_patient: {
+        Args: {
+          p_patient_id: string;
+        };
+        Returns: undefined;
       };
       get_assignment_icons: {
         Args: {

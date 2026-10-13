@@ -82,7 +82,7 @@ describe('patient detail bindings', () => {
     expect(channelBindsActionCompletions(channels)).toBe(false);
     expect(
       channels.flatMap((channel) => channel.postgresChanges.map((binding) => binding.table)),
-    ).toEqual(['patients', 'diary_entries', 'patient_photos', 'feedback_surveys']);
+    ).toEqual(['patients', 'patients', 'diary_entries', 'patient_photos', 'feedback_surveys']);
   });
 
   it('subscribes only to patients when there is no treatment', () => {
@@ -94,6 +94,7 @@ describe('patient detail bindings', () => {
     expect(channels).toHaveLength(1);
     expect(channels[0]?.postgresChanges).toEqual([
       { table: 'patients', event: 'UPDATE', filter: 'id=eq.patient-1' },
+      { table: 'patients', event: 'DELETE', filter: 'id=eq.patient-1' },
     ]);
   });
 });
@@ -240,6 +241,11 @@ describe('subscribeRealtimeInvalidation', () => {
   it('builds a patients-list channel without action_completions', () => {
     const channel = patientsListChannel('clinic-1');
     expect(channel.name).toBe('clinic-review:patients-list:clinic-1');
+    expect(channel.postgresChanges.map((binding) => binding.event)).toEqual([
+      'INSERT',
+      'UPDATE',
+      'DELETE',
+    ]);
     expect(channelBindsActionCompletions([channel])).toBe(false);
   });
 });

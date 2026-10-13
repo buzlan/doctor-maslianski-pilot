@@ -23,6 +23,7 @@ export function patientsListChannel(clinicId: string): RealtimeInvalidationChann
     postgresChanges: [
       { table: 'patients', event: 'INSERT' },
       { table: 'patients', event: 'UPDATE' },
+      { table: 'patients', event: 'DELETE' },
     ],
   };
 }
@@ -36,6 +37,7 @@ export function patientDetailChannels(input: {
       name: `clinic-review:patient:${input.patientId}`,
       postgresChanges: [
         { table: 'patients', event: 'UPDATE', filter: `id=eq.${input.patientId}` },
+        { table: 'patients', event: 'DELETE', filter: `id=eq.${input.patientId}` },
       ],
     },
   ];

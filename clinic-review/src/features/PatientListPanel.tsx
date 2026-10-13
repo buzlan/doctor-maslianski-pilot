@@ -19,6 +19,7 @@ export type PatientListRow = {
   id: string;
   clinic_label: string;
   auth_user_id: string | null;
+  is_test: boolean;
   created_at: string;
   treatmentStatus: TreatmentStatus;
   dayN: number | null;
@@ -36,6 +37,7 @@ export function PatientListPanel() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+  const [hideTest, setHideTest] = useState(false);
   const cancelledRef = useRef(false);
   const initialLoadRef = useRef(true);
 
@@ -52,7 +54,7 @@ export function PatientListPanel() {
     const [patientsRes, treatmentsRes, periodsRes, invitesRes] = await Promise.all([
       supabase
         .from('patients')
-        .select('id, clinic_label, auth_user_id, created_at')
+        .select('id, clinic_label, auth_user_id, is_test, created_at')
         .order('created_at', { ascending: false }),
       supabase.from('treatments').select('id, patient_id, status'),
       supabase.from('treatment_periods').select('treatment_id, started_on, ended_on'),
@@ -92,6 +94,7 @@ export function PatientListPanel() {
           id: patient.id,
           clinic_label: patient.clinic_label,
           auth_user_id: patient.auth_user_id,
+          is_test: patient.is_test,
           created_at: patient.created_at,
           treatmentStatus: treatment?.status ?? null,
           dayN,
@@ -121,6 +124,9 @@ export function PatientListPanel() {
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return rows.filter((row) => {
+      if (hideTest && row.is_test) {
+        return false;
+      }
       if (needle.length > 0 && !row.clinic_label.toLowerCase().includes(needle)) {
         return false;
       }
@@ -135,7 +141,7 @@ export function PatientListPanel() {
       }
       return true;
     });
-  }, [filter, query, rows]);
+  }, [filter, hideTest, query, rows]);
 
   return (
     <aside className="list-pane">
@@ -159,6 +165,14 @@ export function PatientListPanel() {
             <option value="completed">Завершённые</option>
             <option value="unactivated">Не активированы</option>
           </select>
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={hideTest}
+              onChange={(event) => setHideTest(event.target.checked)}
+            />
+            Скрыть тестовых
+          </label>
           <button type="button" onClick={() => navigate('/patients/new')}>
             Создать пациента
           </button>
@@ -181,6 +195,7 @@ export function PatientListPanel() {
           const selected = row.id === patientId;
           const activation = row.auth_user_id === null ? 'не активирован' : 'активирован';
           const invite = row.inviteStatus === 'pending' ? ' · приглашение' : '';
+          const testMark = row.is_test ? ' · тест' : '';
           const day = row.dayN !== null ? `День ${row.dayN}` : treatmentStatusLabel(row.treatmentStatus);
           return (
             <button
@@ -198,6 +213,7 @@ export function PatientListPanel() {
                 <span className="patient-row-meta">
                   {activation}
                   {invite}
+                  {testMark}
                 </span>
               </span>
               <span className="patient-row-meta">{day}</span>

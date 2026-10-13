@@ -21,7 +21,7 @@ Helpers are `SECURITY DEFINER` with `search_path = public, pg_temp`. `EXECUTE` i
 |---|---|---|
 | `clinics` | SELECT own clinic | SELECT own clinic |
 | `clinic_staff` | none | SELECT own clinic |
-| `patients` | SELECT own | SELECT/INSERT; UPDATE `clinic_label` only (no bind-column UPDATE) |
+| `patients` | SELECT own | SELECT/INSERT; UPDATE `clinic_label` and `is_test` only (no bind-column UPDATE). Purge is `delete_patient`, not a table DELETE. |
 | `action_catalog_items` | none | SELECT/INSERT/UPDATE |
 | `treatments` | SELECT own | SELECT/INSERT/UPDATE except `pilot_cohort` |
 | `treatment_periods` | SELECT own treatment | SELECT/INSERT/UPDATE |

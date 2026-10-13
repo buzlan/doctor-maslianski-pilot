@@ -103,8 +103,13 @@ VALUES (
 -- ---------------------------------------------------------------------------
 
 SELECT ok(
-  NOT has_function_privilege('anon', 'public.create_unactivated_patient(text, date)', 'execute'),
+  NOT has_function_privilege('anon', 'public.create_unactivated_patient(text, date, boolean)', 'execute'),
   'anon cannot execute create_unactivated_patient'
+);
+
+SELECT ok(
+  NOT has_function_privilege('anon', 'public.delete_patient(uuid)', 'execute'),
+  'anon cannot execute delete_patient'
 );
 
 SELECT ok(
@@ -123,8 +128,13 @@ SELECT ok(
 );
 
 SELECT ok(
-  has_function_privilege('authenticated', 'public.create_unactivated_patient(text, date)', 'execute'),
+  has_function_privilege('authenticated', 'public.create_unactivated_patient(text, date, boolean)', 'execute'),
   'authenticated can execute create_unactivated_patient'
+);
+
+SELECT ok(
+  has_function_privilege('authenticated', 'public.delete_patient(uuid)', 'execute'),
+  'authenticated can execute delete_patient'
 );
 
 -- ---------------------------------------------------------------------------
@@ -157,9 +167,10 @@ SELECT is(
     WHERE clinic_label = 'Clinic Label One'
       AND auth_user_id IS NULL
       AND pilot_cohort IS NULL
+      AND is_test = false
   ),
   1,
-  'created patient has label and null bind columns'
+  'created patient has label, null bind columns, and is not a test patient'
 );
 
 SELECT is(
@@ -192,6 +203,29 @@ SELECT lives_ok(
       SET clinic_label = 'Clinic Label One Edited'
     WHERE clinic_label = 'Clinic Label One'$$,
   'staff can update clinic_label'
+);
+
+SELECT lives_ok(
+  $$UPDATE public.patients
+      SET is_test = true
+    WHERE clinic_label = 'Clinic Label One Edited'$$,
+  'staff can mark a patient as test'
+);
+
+SELECT is(
+  (
+    SELECT is_test FROM public.patients
+    WHERE clinic_label = 'Clinic Label One Edited'
+  ),
+  true,
+  'test flag is stored'
+);
+
+SELECT lives_ok(
+  $$UPDATE public.patients
+      SET is_test = false
+    WHERE clinic_label = 'Clinic Label One Edited'$$,
+  'staff can clear the test flag'
 );
 
 SELECT throws_ok(
@@ -563,6 +597,20 @@ SELECT is(
   'staff B cannot update clinic A clinic_label'
 );
 
+UPDATE public.patients
+SET is_test = true
+WHERE clinic_label = 'Clinic Label One Edited';
+
+SELECT is(
+  (
+    SELECT count(*)::int FROM public.patients
+    WHERE clinic_label = 'Clinic Label One Edited'
+      AND is_test
+  ),
+  0,
+  'staff B cannot mark a clinic A patient as test'
+);
+
 SELECT pg_temp.logout();
 
 SELECT is(
@@ -572,6 +620,397 @@ SELECT is(
   ),
   'Clinic Label One Edited',
   'clinic A clinic_label is unchanged after staff B update attempt'
+);
+
+SELECT is(
+  (
+    SELECT is_test FROM public.patients
+    WHERE clinic_label = 'Clinic Label One Edited'
+  ),
+  false,
+  'clinic A test flag is unchanged after staff B update attempt'
+);
+
+-- ---------------------------------------------------------------------------
+-- Test flag on create, and a full patient purge
+-- ---------------------------------------------------------------------------
+
+SELECT pg_temp.login('10000000-0000-4000-8000-000000000010');
+
+SELECT lives_ok(
+  $$SELECT public.create_unactivated_patient('Test Account', DATE '2026-09-02', true)$$,
+  'staff can create a test patient'
+);
+
+SELECT is(
+  (
+    SELECT is_test FROM public.patients
+    WHERE clinic_label = 'Test Account'
+  ),
+  true,
+  'create_unactivated_patient stores the test flag'
+);
+
+SELECT pg_temp.logout();
+
+SELECT pg_temp.create_auth_user(
+  'e0000000-0000-4000-8000-0000000000e2',
+  'purge.patient@local.test'
+);
+
+INSERT INTO public.patients (id, clinic_id, clinic_label, auth_user_id, is_test)
+VALUES (
+  'e0000000-0000-4000-8000-0000000000e1',
+  '10000000-0000-4000-8000-000000000001',
+  'Purge Me',
+  'e0000000-0000-4000-8000-0000000000e2',
+  true
+);
+
+INSERT INTO public.treatments (id, patient_id, clinic_id, treatment_context, status)
+VALUES (
+  'e0000000-0000-4000-8000-0000000000e3',
+  'e0000000-0000-4000-8000-0000000000e1',
+  '10000000-0000-4000-8000-000000000001',
+  'sclerotherapy',
+  'active'
+);
+
+INSERT INTO public.treatment_periods (id, treatment_id, clinic_id, started_on)
+VALUES (
+  'e0000000-0000-4000-8000-0000000000e4',
+  'e0000000-0000-4000-8000-0000000000e3',
+  '10000000-0000-4000-8000-000000000001',
+  DATE '2026-09-01'
+);
+
+INSERT INTO public.treatment_milestones (id, treatment_id, clinic_id, title, occurred_on)
+VALUES (
+  'e0000000-0000-4000-8000-0000000000e5',
+  'e0000000-0000-4000-8000-0000000000e3',
+  '10000000-0000-4000-8000-000000000001',
+  'Visit',
+  DATE '2026-09-02'
+);
+
+INSERT INTO public.action_assignments (
+  id, treatment_id, clinic_id, catalog_item_id, title, start_date, end_date
+) VALUES (
+  'e0000000-0000-4000-8000-0000000000e6',
+  'e0000000-0000-4000-8000-0000000000e3',
+  '10000000-0000-4000-8000-000000000001',
+  'e0000000-0000-4000-8000-0000000000c1',
+  'placeholder',
+  DATE '2026-09-01',
+  DATE '2026-09-14'
+);
+
+INSERT INTO public.action_completions (
+  id, assignment_id, treatment_id, patient_id, clinic_id, completed_on
+) VALUES (
+  'e0000000-0000-4000-8000-0000000000e7',
+  'e0000000-0000-4000-8000-0000000000e6',
+  'e0000000-0000-4000-8000-0000000000e3',
+  'e0000000-0000-4000-8000-0000000000e1',
+  '10000000-0000-4000-8000-000000000001',
+  DATE '2026-09-02'
+);
+
+UPDATE public.action_assignments
+SET status = 'disabled'
+WHERE id = 'e0000000-0000-4000-8000-0000000000e6';
+
+INSERT INTO public.diary_entries (
+  treatment_id, patient_id, clinic_id, submitted_on, pain, swelling, wellbeing
+) VALUES (
+  'e0000000-0000-4000-8000-0000000000e3',
+  'e0000000-0000-4000-8000-0000000000e1',
+  '10000000-0000-4000-8000-000000000001',
+  DATE '2026-09-02',
+  1,
+  1,
+  'unchanged'
+);
+
+INSERT INTO public.patient_photos (
+  id, treatment_id, patient_id, clinic_id, submitted_on, slot,
+  storage_bucket, storage_path, content_type
+) VALUES (
+  'e0000000-0000-4000-8000-0000000000e9',
+  'e0000000-0000-4000-8000-0000000000e3',
+  'e0000000-0000-4000-8000-0000000000e1',
+  '10000000-0000-4000-8000-000000000001',
+  DATE '2026-09-02',
+  1,
+  'patient-photos',
+  '10000000-0000-4000-8000-000000000001/e0000000-0000-4000-8000-0000000000e1/e0000000-0000-4000-8000-0000000000e3/2026-09-02/e0000000-0000-4000-8000-0000000000e9.jpg',
+  'image/jpeg'
+);
+
+INSERT INTO public.doctor_milestone_photos (
+  id, treatment_id, milestone_id, clinic_id, storage_bucket, storage_path, content_type
+) VALUES (
+  'e0000000-0000-4000-8000-0000000000ea',
+  'e0000000-0000-4000-8000-0000000000e3',
+  'e0000000-0000-4000-8000-0000000000e5',
+  '10000000-0000-4000-8000-000000000001',
+  'doctor-milestone-photos',
+  '10000000-0000-4000-8000-000000000001/e0000000-0000-4000-8000-0000000000e3/e0000000-0000-4000-8000-0000000000e5/e0000000-0000-4000-8000-0000000000ea.jpg',
+  'image/jpeg'
+);
+
+INSERT INTO storage.objects (bucket_id, name) VALUES
+  (
+    'patient-photos',
+    '10000000-0000-4000-8000-000000000001/e0000000-0000-4000-8000-0000000000e1/e0000000-0000-4000-8000-0000000000e3/2026-09-02/e0000000-0000-4000-8000-0000000000e9.jpg'
+  ),
+  (
+    'patient-photos',
+    '10000000-0000-4000-8000-000000000001/e0000000-0000-4000-8000-0000000000e1/e0000000-0000-4000-8000-0000000000e3/2026-09-02/orphan.jpg'
+  ),
+  (
+    'doctor-milestone-photos',
+    '10000000-0000-4000-8000-000000000001/e0000000-0000-4000-8000-0000000000e3/e0000000-0000-4000-8000-0000000000e5/e0000000-0000-4000-8000-0000000000ea.jpg'
+  ),
+  (
+    'patient-photos',
+    '10000000-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000020/keep.jpg'
+  );
+
+INSERT INTO public.appointments (
+  id, treatment_id, clinic_id, status, wall_clock, time_zone, at_utc
+) VALUES (
+  'e0000000-0000-4000-8000-0000000000eb',
+  'e0000000-0000-4000-8000-0000000000e3',
+  '10000000-0000-4000-8000-000000000001',
+  'current',
+  TIMESTAMP '2026-09-10 10:00',
+  'Europe/Minsk',
+  TIMESTAMPTZ '2026-09-10 07:00+00'
+);
+
+INSERT INTO public.patient_invites (
+  id, clinic_id, patient_id, treatment_id, token_hash, expires_at, created_by_staff_id, pilot_cohort
+) VALUES (
+  'e0000000-0000-4000-8000-0000000000ec',
+  '10000000-0000-4000-8000-000000000001',
+  'e0000000-0000-4000-8000-0000000000e1',
+  'e0000000-0000-4000-8000-0000000000e3',
+  decode(repeat('cd', 32), 'hex'),
+  now() + interval '7 days',
+  '10000000-0000-4000-8000-000000000011',
+  'internal_dry_run'
+);
+
+INSERT INTO public.product_events (name, pilot_cohort, patient_id, treatment_id)
+VALUES (
+  'app_opened',
+  'internal_dry_run',
+  'e0000000-0000-4000-8000-0000000000e1',
+  'e0000000-0000-4000-8000-0000000000e3'
+);
+
+INSERT INTO public.push_subscriptions (patient_id, endpoint, p256dh, auth)
+VALUES (
+  'e0000000-0000-4000-8000-0000000000e1',
+  'https://push.example.test/purge-e1',
+  'p256dh-key-value',
+  'auth-key-value'
+);
+
+INSERT INTO public.notification_events (patient_id, kind, route, dedupe_key)
+VALUES (
+  'e0000000-0000-4000-8000-0000000000e1',
+  'manual_test',
+  '/',
+  'purge-patient-e1-manual'
+);
+
+INSERT INTO public.web_session_handoffs (token_hash, auth_user_id, expires_at)
+VALUES (
+  decode(repeat('ab', 32), 'hex'),
+  'e0000000-0000-4000-8000-0000000000e2',
+  now() + interval '10 minutes'
+);
+
+UPDATE public.treatments
+SET status = 'completed', completed_at = now()
+WHERE id = 'e0000000-0000-4000-8000-0000000000e3';
+
+INSERT INTO public.feedback_surveys (
+  treatment_id, patient_id, clinic_id, usefulness_score, clarity_score
+) VALUES (
+  'e0000000-0000-4000-8000-0000000000e3',
+  'e0000000-0000-4000-8000-0000000000e1',
+  '10000000-0000-4000-8000-000000000001',
+  4,
+  5
+);
+
+SELECT pg_temp.login('e0000000-0000-4000-8000-0000000000a1');
+
+UPDATE public.patients
+SET is_test = true
+WHERE id = 'e0000000-0000-4000-8000-0000000000a0';
+
+SELECT pg_temp.logout();
+
+SELECT is(
+  (
+    SELECT is_test FROM public.patients
+    WHERE id = 'e0000000-0000-4000-8000-0000000000a0'
+  ),
+  false,
+  'patient cannot mark themselves as test'
+);
+
+SELECT pg_temp.login('e0000000-0000-4000-8000-0000000000a1');
+SELECT throws_ok(
+  $$SELECT public.delete_patient('e0000000-0000-4000-8000-0000000000e1')$$,
+  '42501',
+  NULL,
+  'patient cannot delete_patient'
+);
+SELECT pg_temp.logout();
+
+SELECT pg_temp.login('e0000000-0000-4000-8000-000000000012');
+SELECT throws_ok(
+  $$SELECT public.delete_patient('e0000000-0000-4000-8000-0000000000e1')$$,
+  'P0002',
+  NULL,
+  'staff B cannot delete a clinic A patient'
+);
+SELECT pg_temp.logout();
+
+SELECT is(
+  (SELECT count(*)::int FROM public.patients WHERE id = 'e0000000-0000-4000-8000-0000000000e1'),
+  1,
+  'foreign delete leaves the patient in place'
+);
+
+SELECT pg_temp.login('10000000-0000-4000-8000-000000000010');
+SELECT lives_ok(
+  $$SELECT public.delete_patient('e0000000-0000-4000-8000-0000000000e1')$$,
+  'staff can delete a patient in their clinic'
+);
+SELECT pg_temp.logout();
+
+SELECT is(
+  (SELECT count(*)::int FROM public.patients WHERE id = 'e0000000-0000-4000-8000-0000000000e1'),
+  0,
+  'purged patient row is gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.treatments WHERE patient_id = 'e0000000-0000-4000-8000-0000000000e1'),
+  0,
+  'purged treatments are gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.treatment_periods WHERE id = 'e0000000-0000-4000-8000-0000000000e4'),
+  0,
+  'purged periods are gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.treatment_milestones WHERE id = 'e0000000-0000-4000-8000-0000000000e5'),
+  0,
+  'purged milestones are gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.action_assignments WHERE id = 'e0000000-0000-4000-8000-0000000000e6'),
+  0,
+  'purged assignments are gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.action_completions WHERE patient_id = 'e0000000-0000-4000-8000-0000000000e1'),
+  0,
+  'purged completions are gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.diary_entries WHERE patient_id = 'e0000000-0000-4000-8000-0000000000e1'),
+  0,
+  'purged diary entries are gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.patient_photos WHERE patient_id = 'e0000000-0000-4000-8000-0000000000e1'),
+  0,
+  'purged patient photo rows are gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.doctor_milestone_photos WHERE id = 'e0000000-0000-4000-8000-0000000000ea'),
+  0,
+  'purged doctor photo rows are gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.appointments WHERE id = 'e0000000-0000-4000-8000-0000000000eb'),
+  0,
+  'purged appointments are gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.patient_invites WHERE patient_id = 'e0000000-0000-4000-8000-0000000000e1'),
+  0,
+  'purged invites are gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.feedback_surveys WHERE patient_id = 'e0000000-0000-4000-8000-0000000000e1'),
+  0,
+  'purged feedback is gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.product_events WHERE patient_id = 'e0000000-0000-4000-8000-0000000000e1'),
+  0,
+  'purged product events are gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.push_subscriptions WHERE patient_id = 'e0000000-0000-4000-8000-0000000000e1'),
+  0,
+  'purged push subscriptions are gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.notification_events WHERE patient_id = 'e0000000-0000-4000-8000-0000000000e1'),
+  0,
+  'purged notification events are gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.web_session_handoffs WHERE auth_user_id = 'e0000000-0000-4000-8000-0000000000e2'),
+  0,
+  'purged web session handoffs are gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM auth.users WHERE id = 'e0000000-0000-4000-8000-0000000000e2'),
+  0,
+  'purged auth user is gone'
+);
+SELECT is(
+  (SELECT count(*)::int FROM auth.identities WHERE user_id = 'e0000000-0000-4000-8000-0000000000e2'),
+  0,
+  'purged auth identity is gone'
+);
+SELECT is(
+  (
+    SELECT count(*)::int FROM storage.objects
+    WHERE name LIKE '10000000-0000-4000-8000-000000000001/e0000000-0000-4000-8000-0000000000e1/%'
+       OR name LIKE '10000000-0000-4000-8000-000000000001/e0000000-0000-4000-8000-0000000000e3/%'
+  ),
+  0,
+  'purged photo objects are gone'
+);
+SELECT is(
+  (
+    SELECT count(*)::int FROM storage.objects
+    WHERE name = '10000000-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000020/keep.jpg'
+  ),
+  1,
+  'another patient photo object is kept'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.patients WHERE clinic_label = 'Clinic Label One Edited'),
+  1,
+  'another patient in the clinic is kept'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.patients WHERE clinic_label = 'Test Account'),
+  1,
+  'the other test patient is kept'
 );
 
 SELECT * FROM finish();

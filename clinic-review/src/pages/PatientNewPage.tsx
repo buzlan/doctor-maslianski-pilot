@@ -28,6 +28,7 @@ export function PatientNewPage() {
   const defaultDate = session === null ? '' : formatCivilDate(clinicToday(session.timeZone));
   const [label, setLabel] = useState('');
   const [startedOn, setStartedOn] = useState(defaultDate);
+  const [isTest, setIsTest] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,6 +40,7 @@ export function PatientNewPage() {
     const { data, error: rpcError } = await supabase.rpc('create_unactivated_patient', {
       p_clinic_label: label.trim(),
       p_started_on: startedOn,
+      p_is_test: isTest,
     });
 
     if (rpcError) {
@@ -83,6 +85,14 @@ export function PatientNewPage() {
               required
             />
           </Field>
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={isTest}
+              onChange={(event) => setIsTest(event.target.checked)}
+            />
+            Тестовый пациент
+          </label>
           <button type="submit" disabled={busy}>
             {busy ? 'Создание…' : 'Создать'}
           </button>

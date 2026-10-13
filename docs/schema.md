@@ -45,7 +45,7 @@ A change supersedes the current row and inserts a new `current` row. There is at
 |---|---|
 | `clinics` | `time_zone`, optional contact fields |
 | `clinic_staff` | `auth_user_id` required |
-| `patients` | `clinic_label` required (1–120 trimmed chars, clinic-facing, may be identifying). `auth_user_id` nullable until invite activation; consent timestamps + `consent_document_version`. Bind columns are activation-RPC only. Never put `clinic_label` in ProductEvent, QR, analytics, or logs. |
+| `patients` | `clinic_label` required (1–120 trimmed chars, clinic-facing, may be identifying). `is_test` is a staff-set flag for internal test accounts, default false, independent of `pilot_cohort`. `auth_user_id` nullable until invite activation; consent timestamps + `consent_document_version`. Bind columns are activation-RPC only. Never put `clinic_label` in ProductEvent, QR, analytics, or logs. |
 | `action_catalog_items` | `title` required, `instruction` nullable. `icon_storage_path` is a nullable object path in the private `action-icons` bucket. Editing title/instruction on an `approved` row forces `draft`; changing only the icon does not. |
 | `treatments` | one `active` per patient; `clinic_id` copied from patient |
 | `treatment_periods` | current period is `ended_on IS NULL`. Clinic transition is `start_new_treatment_period`. |
@@ -79,4 +79,6 @@ reads will resolve the current icon through `catalog_item_id`, so a replacement
 or removal will appear on the next data refresh. The schema migration adds the
 field only; authorized patient reads and UI integration are separate steps.
 
-Clinic write RPCs (SECURITY INVOKER, staff-only): `create_unactivated_patient`, `assign_catalog_item_to_treatment`, `start_new_treatment_period`, `replace_current_appointment`. EXECUTE is granted to `authenticated` only. RLS remains authoritative.
+Clinic write RPCs (SECURITY INVOKER, staff-only): `create_unactivated_patient` (optional `p_is_test`, default false), `assign_catalog_item_to_treatment`, `start_new_treatment_period`, `replace_current_appointment`. EXECUTE is granted to `authenticated` only. RLS remains authoritative.
+
+`delete_patient` is SECURITY DEFINER and staff-only. It removes the patient row and dependent clinical data, photo objects, invites, product events, push data, web session handoffs, and the linked auth user. A missing or foreign-clinic id is reported as not found.

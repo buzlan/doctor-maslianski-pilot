@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { useStaffAuth } from "../auth/StaffAuth";
 import {
@@ -57,6 +57,7 @@ type PatientHeader = {
   id: string;
   clinic_label: string;
   auth_user_id: string | null;
+  is_test: boolean;
   pilot_cohort: "internal_dry_run" | "closed_beta" | "clinic_pilot" | null;
 };
 
@@ -102,6 +103,7 @@ const TABS: { id: DetailTab; label: string }[] = [
 
 export function PatientDetailPage() {
   const { patientId } = useParams();
+  const navigate = useNavigate();
   const { session } = useStaffAuth();
   const [state, setState] = useState<DetailState | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -119,7 +121,7 @@ export function PatientDetailPage() {
 
     const { data: patient, error: patientError } = await supabase
       .from("patients")
-      .select("id, clinic_label, auth_user_id, pilot_cohort")
+      .select("id, clinic_label, auth_user_id, is_test, pilot_cohort")
       .eq("id", patientId)
       .maybeSingle();
 
@@ -364,6 +366,52 @@ export function PatientDetailPage() {
     await load();
   }
 
+  async function setTestFlag(isTest: boolean) {
+    if (state === null) {
+      return;
+    }
+    setBusy(true);
+    const { error: updateError } = await supabase
+      .from("patients")
+      .update({ is_test: isTest })
+      .eq("id", state.patient.id);
+    setBusy(false);
+    if (updateError) {
+      setError(
+        publicErrorMessage(
+          updateError,
+          "Не удалось изменить пометку тестового пациента.",
+        ),
+      );
+      return;
+    }
+    await load();
+  }
+
+  async function deletePatient() {
+    if (state === null) {
+      return;
+    }
+    const label = state.patient.clinic_label;
+    if (
+      !window.confirm(
+        `Удалить пациента «${label}» без возможности восстановления? Будут удалены лечение, дневник, фото, приглашения, уведомления и учётная запись, если она была.`,
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    const { error: deleteError } = await supabase.rpc("delete_patient", {
+      p_patient_id: state.patient.id,
+    });
+    setBusy(false);
+    if (deleteError) {
+      setError(publicErrorMessage(deleteError, "Не удалось удалить пациента."));
+      return;
+    }
+    navigate("/patients");
+  }
+
   if (session === null) {
     return null;
   }
@@ -430,6 +478,9 @@ export function PatientDetailPage() {
                       ? "не активирован"
                       : "активирован"}
                   </Badge>
+                  {state.patient.is_test ? (
+                    <Badge tone="warning">тест</Badge>
+                  ) : null}
                   {dayN !== null ? <span>День {dayN}</span> : null}
                   {currentPeriod !== undefined ? (
                     <span>период с {currentPeriod.started_on}</span>
@@ -456,6 +507,24 @@ export function PatientDetailPage() {
                   Завершить лечение
                 </button>
               ) : null}
+              <button
+                type="button"
+                className="secondary"
+                disabled={busy}
+                onClick={() => void setTestFlag(!state.patient.is_test)}
+              >
+                {state.patient.is_test
+                  ? "Снять пометку «тест»"
+                  : "Пометить как тестового"}
+              </button>
+              <button
+                type="button"
+                className="danger"
+                disabled={busy}
+                onClick={() => void deletePatient()}
+              >
+                Удалить пациента
+              </button>
             </div>
           </div>
 
