@@ -17,7 +17,7 @@ describe('patient detail tabs', () => {
     expect(labels({ activated: true, isTest: false })).not.toContain('Доступ');
     expect(labels({ activated: true, isTest: false })).not.toContain('Уведомления');
     expect(labels({ activated: true, isTest: true })).toEqual([
-      'Обзор',
+      'Ближайший приём',
       'Назначения',
       'Дневник',
       'Фото',

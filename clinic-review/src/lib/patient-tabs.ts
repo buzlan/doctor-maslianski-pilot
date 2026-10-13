@@ -14,7 +14,7 @@ export type PatientTabItem = {
 };
 
 const LEADING_TABS: PatientTabItem[] = [
-  { id: 'overview', label: 'Обзор' },
+  { id: 'overview', label: 'Ближайший приём' },
   { id: 'assignments', label: 'Назначения' },
   { id: 'diary', label: 'Дневник' },
   { id: 'photos', label: 'Фото' },
