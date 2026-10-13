@@ -498,6 +498,19 @@ h2 {
   margin-top: 0.95rem;
 }
 
+.appointment-current {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.appointment-current .kv {
+  flex: 1;
+  min-width: 12rem;
+}
+
 .appointment-form-label {
   flex-basis: 100%;
   margin: 0;

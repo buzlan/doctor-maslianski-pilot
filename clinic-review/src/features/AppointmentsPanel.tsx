@@ -61,6 +61,28 @@ export function AppointmentsPanel({
     setMinute(parts.minute);
   }, [currentClock]);
 
+  async function cancel() {
+    if (current === undefined) {
+      return;
+    }
+    const when = formatWallClock(current.wall_clock);
+    if (!window.confirm(`Отменить ближайший приём ${when}?`)) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const { error: updateError } = await supabase
+      .from('appointments')
+      .update({ status: 'superseded', superseded_at: new Date().toISOString() })
+      .eq('id', current.id);
+    setBusy(false);
+    if (updateError) {
+      setError(publicErrorMessage(updateError, 'Не удалось отменить приём.'));
+      return;
+    }
+    await onChanged();
+  }
+
   async function replace(event: FormEvent) {
     event.preventDefault();
     if (preview === null) {
@@ -88,11 +110,25 @@ export function AppointmentsPanel({
       {current === undefined ? (
         <p className="muted">Ближайшего приёма нет</p>
       ) : (
-        <div className="kv">
-          <div className="kv-row">
-            <span className="kv-label">Ближайший</span>
-            <strong>{formatWallClock(current.wall_clock)}</strong>
+        <div className="appointment-current">
+          <div className="kv">
+            <div className="kv-row">
+              <span className="kv-label">Ближайший</span>
+              <strong>{formatWallClock(current.wall_clock)}</strong>
+            </div>
           </div>
+          {treatmentActive ? (
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={() => {
+                void cancel();
+              }}
+            >
+              Отменить
+            </button>
+          ) : null}
         </div>
       )}
       {treatmentActive ? (
