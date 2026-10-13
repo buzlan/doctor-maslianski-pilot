@@ -41,6 +41,56 @@ export function doctorMilestonePhotoPath(input: {
   ].join('/');
 }
 
+export function patientPhotoFileName(photo: {
+  submitted_on: string;
+  slot: number;
+  storage_path: string;
+}): string {
+  const extension = photo.storage_path.split('.').pop()?.toLowerCase() ?? '';
+  const safeExtension = /^[a-z0-9]{2,5}$/.test(extension) ? extension : 'jpg';
+  return `${photo.submitted_on}-slot-${photo.slot}.${safeExtension}`;
+}
+
+export type PatientPhotoDay<T extends { submitted_on: string; slot: number }> = {
+  date: string;
+  photos: T[];
+};
+
+export function groupPatientPhotosByDay<T extends { submitted_on: string; slot: number }>(
+  photos: readonly T[],
+): PatientPhotoDay<T>[] {
+  const sorted = [...photos].sort((left, right) => {
+    const byDate = right.submitted_on.localeCompare(left.submitted_on);
+    if (byDate !== 0) {
+      return byDate;
+    }
+    return left.slot - right.slot;
+  });
+
+  const days: PatientPhotoDay<T>[] = [];
+  for (const photo of sorted) {
+    const current = days[days.length - 1];
+    if (current === undefined || current.date !== photo.submitted_on) {
+      days.push({ date: photo.submitted_on, photos: [photo] });
+    } else {
+      current.photos.push(photo);
+    }
+  }
+  return days;
+}
+
+export function photoCountLabel(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) {
+    return `${count} файл`;
+  }
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return `${count} файла`;
+  }
+  return `${count} файлов`;
+}
+
 export function contentTypeFromFile(file: File): DoctorPhotoContentType | null {
   if (isAllowedDoctorPhotoType(file.type)) {
     return file.type;
