@@ -1,0 +1,43 @@
+.instruction-viewer-layout {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 34px);
+}
+.instruction-viewer-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.instruction-viewer-layout h3 {
+  overflow-wrap: anywhere;
+}
+.instruction-viewer-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(110px, 100%), 1fr));
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+}
+.instruction-viewer-photos > a {
+  display: block;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+.instruction-viewer-photos img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+.instruction-viewer-photos > p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.assignment-instruction-link {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0.6rem 0;
+}

@@ -1,5 +1,16 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 
+import { DetailedInstructionModal } from "../features/DetailedInstructionModal";
+import {
+  instructionDraft,
+  readDetailedInstruction,
+  saveDetailedInstruction,
+  retryPhotoCleanup,
+  queuePhotoCleanup,
+  INSTRUCTION_PHOTO_BUCKET,
+  type DetailedInstruction,
+  type InstructionDraft,
+} from "../lib/detailed-instruction";
 import { ActionIconInput } from "../features/ActionIconInput";
 import {
   prepareActionIcon,
@@ -16,6 +27,7 @@ type CatalogItem = {
   id: string;
   title: string;
   instruction: string | null;
+  detailed_instruction: DetailedInstruction | null;
   status: "draft" | "approved";
   icon_storage_path: string | null;
 };
@@ -25,6 +37,13 @@ export function CatalogPage() {
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [title, setTitle] = useState("");
   const [instruction, setInstruction] = useState("");
+  const [newDetails, setNewDetails] = useState<InstructionDraft>(() =>
+    instructionDraft(null),
+  );
+  const [detailEditor, setDetailEditor] = useState<{
+    item: CatalogItem | null;
+    draft: InstructionDraft;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
@@ -113,7 +132,9 @@ export function CatalogPage() {
   async function load() {
     const { data, error: loadError } = await supabase
       .from("action_catalog_items")
-      .select("id, title, instruction, status, sort_order, icon_storage_path")
+      .select(
+        "id, title, instruction, detailed_instruction, status, sort_order, icon_storage_path",
+      )
       .order("sort_order")
       .order("created_at");
 
@@ -122,13 +143,24 @@ export function CatalogPage() {
       return;
     }
 
-    setItems(data ?? []);
+    setItems(
+      (data ?? []).map((item) => ({
+        ...item,
+        detailed_instruction: readDetailedInstruction(
+          item.detailed_instruction,
+        ),
+      })),
+    );
     setError(null);
   }
 
   useEffect(() => {
     void load();
   }, []);
+
+  useEffect(() => {
+    if (session) void retryPhotoCleanup(supabase, session.clinicId);
+  }, [session?.clinicId]);
 
   async function onCreate(event: FormEvent) {
     event.preventDefault();
@@ -150,6 +182,8 @@ export function CatalogPage() {
         .select("id")
         .single();
       if (insertError) throw insertError;
+      const createdDetails = newDetails;
+      setNewDetails(instructionDraft(null));
       setTitle("");
       setInstruction("");
       setIconFile(null);
@@ -168,6 +202,30 @@ export function CatalogPage() {
         setNotice(
           "Действие создано, но иконку сохранить не удалось. Добавьте её у созданного действия.",
         );
+      }
+      try {
+        await saveDetailedInstruction(
+          supabase,
+          session.clinicId,
+          data.id,
+          null,
+          createdDetails,
+        );
+      } catch {
+        setNotice(
+          "Пункт создан, но подробную инструкцию сохранить не удалось. Она открыта для повторного сохранения.",
+        );
+        setDetailEditor({
+          item: {
+            id: data.id,
+            title: title.trim(),
+            instruction: instruction.trim() || null,
+            detailed_instruction: null,
+            status: "draft",
+            icon_storage_path: null,
+          },
+          draft: createdDetails,
+        });
       }
       await load();
     } catch (error) {
@@ -195,6 +253,47 @@ export function CatalogPage() {
       await load();
     } catch (error) {
       setError(publicErrorMessage(error, "Не удалось сохранить формулировку."));
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function saveDetails(draft: InstructionDraft) {
+    if (!detailEditor || !session || busyRef.current) return;
+    if (!detailEditor.item) {
+      setNewDetails(draft);
+      setDetailEditor(null);
+      return;
+    }
+    busyRef.current = true;
+    setBusy(true);
+    try {
+      const item = detailEditor.item;
+      const value = await saveDetailedInstruction(
+        supabase,
+        session.clinicId,
+        item.id,
+        item.detailed_instruction,
+        draft,
+      );
+      // Preserve any unsaved edits in the existing title/short instruction fields.
+      setItems((current) =>
+        current.map((row) =>
+          row.id === item.id
+            ? {
+                ...row,
+                detailed_instruction: value,
+                status:
+                  JSON.stringify(value) ===
+                  JSON.stringify(item.detailed_instruction)
+                    ? row.status
+                    : "draft",
+              }
+            : row,
+        ),
+      );
+      setDetailEditor(null);
     } finally {
       busyRef.current = false;
       setBusy(false);
@@ -255,6 +354,25 @@ export function CatalogPage() {
           setNotice("Пункт удалён, но иконку не удалось стереть из хранилища.");
         }
       }
+      if (session) {
+        try {
+          const prefix = `${session.clinicId}/${item.id}`;
+          const { data: photos, error: listError } = await supabase.storage
+            .from(INSTRUCTION_PHOTO_BUCKET)
+            .list(prefix, { limit: 1000 });
+          if (listError) throw listError;
+          queuePhotoCleanup(
+            session.clinicId,
+            (photos ?? []).map((photo) => `${prefix}/${photo.name}`),
+          );
+          if (await retryPhotoCleanup(supabase, session.clinicId))
+            setNotice(
+              "Пункт удалён. Очистка неиспользуемых фото будет повторена при открытии каталога.",
+            );
+        } catch {
+          setNotice("Пункт удалён, но очистить фотографии не удалось.");
+        }
+      }
       await load();
     } catch (error) {
       setError(publicErrorMessage(error, "Не удалось удалить пункт каталога."));
@@ -272,7 +390,8 @@ export function CatalogPage() {
         копируется в назначение. Изменение формулировки снова делает пункт
         черновиком. Иконка общая для всех назначений этого действия; её замена
         не требует повторного утверждения. Удаление пункта убирает его
-        назначения у пациентов.
+        назначения у пациентов. Подробная инструкция необязательна и также
+        копируется в назначение.
       </p>
       {error !== null ? <PageNotice tone="error">{error}</PageNotice> : null}
       {notice && <PageNotice>{notice}</PageNotice>}
@@ -326,6 +445,20 @@ export function CatalogPage() {
           <button type="submit" disabled={busy}>
             Добавить черновик
           </button>
+          <div className="catalog-details-actions catalog-create-details">
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={() => setDetailEditor({ item: null, draft: newDetails })}
+            >
+              {newDetails.heading.trim() ||
+              newDetails.text.trim() ||
+              newDetails.photos.length
+                ? "Редактировать инструкцию"
+                : "Подробная инструкция"}
+            </button>
+          </div>
         </form>
       </section>
 
@@ -411,10 +544,40 @@ export function CatalogPage() {
                   </button>
                 </div>
               </div>
+              <div className="catalog-details-actions">
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() =>
+                    setDetailEditor({
+                      item,
+                      draft: instructionDraft(item.detailed_instruction),
+                    })
+                  }
+                >
+                  {item.detailed_instruction
+                    ? "Редактировать инструкцию"
+                    : "Подробная инструкция"}
+                </button>
+                {item.detailed_instruction && (
+                  <span className="muted">
+                    Инструкция добавлена · фото:{" "}
+                    {item.detailed_instruction.photo_paths.length}
+                  </span>
+                )}
+              </div>
             </div>
           ))
         )}
       </section>
+      {detailEditor && (
+        <DetailedInstructionModal
+          initial={detailEditor.draft}
+          onSave={saveDetails}
+          onClose={() => setDetailEditor(null)}
+        />
+      )}
     </div>
   );
 }

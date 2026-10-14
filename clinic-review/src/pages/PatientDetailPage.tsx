@@ -1,3 +1,4 @@
+import { readDetailedInstruction } from "../lib/detailed-instruction";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -187,7 +188,7 @@ export function PatientDetailPage() {
       supabase
         .from("action_assignments")
         .select(
-          "id, title, instruction, start_date, end_date, status, catalog_icon:action_catalog_items(icon_storage_path)",
+          "id, title, instruction, detailed_instruction, start_date, end_date, status, catalog_icon:action_catalog_items(icon_storage_path)",
         )
         .eq("treatment_id", treatment.id)
         .order("created_at"),
@@ -266,6 +267,9 @@ export function PatientDetailPage() {
       assignments: (assignmentsRes.data ?? []).map(
         ({ catalog_icon, ...assignment }) => ({
           ...assignment,
+          detailed_instruction: readDetailedInstruction(
+            assignment.detailed_instruction,
+          ),
           icon_storage_path: catalog_icon?.icon_storage_path ?? null,
         }),
       ),
@@ -642,7 +646,8 @@ export function PatientDetailPage() {
                   <section className="card">
                     <h2 className="card-title">Тестовое уведомление</h2>
                     <p className="muted">
-                      Отправка доступна для приглашения с cohort internal_dry_run.
+                      Отправка доступна для приглашения с cohort
+                      internal_dry_run.
                     </p>
                   </section>
                 )}
