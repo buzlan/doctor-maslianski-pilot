@@ -1287,3 +1287,42 @@ button.action-icon-button-remove {
 button.action-icon-button-remove:hover:not(:disabled) {
   border-color: var(--accent);
 }
+
+.catalog-details-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .6rem;
+}
+.catalog-details-actions { margin-top: .8rem; }
+.instruction-dialog {
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  width: min(720px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+  box-shadow: 0 20px 70px #0003;
+}
+.instruction-dialog::backdrop { background: #14203188; }
+.instruction-dialog form { display: flex; flex-direction: column; max-height: calc(100dvh - 34px); }
+.instruction-dialog-header, .instruction-dialog-footer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.4rem;
+  flex-shrink: 0;
+}
+.instruction-dialog-header { justify-content: space-between; border-bottom: 1px solid var(--line); }
+.instruction-dialog-header h2 { margin: 0; font-size: 1.2rem; }
+.instruction-dialog-header button { min-width: 44px; min-height: 44px; padding: .2rem; font-size: 1.8rem; line-height: 1; }
+.instruction-dialog-footer { justify-content: flex-end; border-top: 1px solid var(--line); }
+.instruction-dialog-body { padding: 1rem 1.4rem; overflow-y: auto; min-height: 0; }
+.instruction-dialog-body > .field { margin-bottom: 1rem; }
+.instruction-dialog textarea { width: 100%; min-height: 220px; max-height: 380px; resize: vertical; overflow-y: auto; }
+.instruction-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; }
+.instruction-photo { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+.instruction-photo img { width: 100%; height: 130px; object-fit: contain; border: 1px solid var(--line); border-radius: 8px; }
+.catalog-create-details { grid-column: 1 / -1; margin-top: 0; }

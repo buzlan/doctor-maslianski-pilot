@@ -1,5 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 
+import { DetailedInstructionViewer } from "./DetailedInstructionViewer";
+import type { DetailedInstruction } from "../lib/detailed-instruction";
 import { AssignmentIcon } from "./AssignmentIcon";
 
 import { assignmentHistoryLabel, groupAssignments } from "../lib/assignments";
@@ -12,6 +14,7 @@ export type AssignmentRow = {
   id: string;
   title: string;
   instruction: string | null;
+  detailed_instruction: DetailedInstruction | null;
   start_date: string;
   end_date: string;
   status: "active" | "disabled";
@@ -47,6 +50,10 @@ export function AssignmentsPanel({
   defaultDate,
   onChanged,
 }: Props) {
+  const [preview, setPreview] = useState<{
+    title: string;
+    instruction: DetailedInstruction;
+  } | null>(null);
   const [catalogItemId, setCatalogItemId] = useState(catalog[0]?.id ?? "");
   const [startDate, setStartDate] = useState(defaultDate);
   const [endDate, setEndDate] = useState(defaultDate);
@@ -58,6 +65,7 @@ export function AssignmentsPanel({
       setCatalogItemId(catalog[0].id);
     }
   }, [catalog, catalogItemId]);
+
 
   async function assign(event: FormEvent) {
     event.preventDefault();
@@ -152,8 +160,22 @@ export function AssignmentsPanel({
         today={defaultDate}
         treatmentActive={treatmentActive}
         busy={busy}
+        onPreview={(assignment) => {
+          if (assignment.detailed_instruction)
+            setPreview({
+              title: assignment.title,
+              instruction: assignment.detailed_instruction,
+            });
+        }}
         onDisable={(assignmentId) => void disable(assignmentId)}
       />
+      {preview && (
+        <DetailedInstructionViewer
+          title={preview.title}
+          instruction={preview.instruction}
+          onClose={() => setPreview(null)}
+        />
+      )}
     </section>
   );
 }
@@ -165,6 +187,7 @@ function AssignmentSections({
   treatmentActive,
   busy,
   onDisable,
+  onPreview,
 }: {
   assignments: AssignmentRow[];
   completions: CompletionRow[];
@@ -172,6 +195,7 @@ function AssignmentSections({
   treatmentActive: boolean;
   busy: boolean;
   onDisable: (assignmentId: string) => void;
+  onPreview: (assignment: AssignmentRow) => void;
 }) {
   const groups = groupAssignments(assignments, today);
 
@@ -187,7 +211,11 @@ function AssignmentSections({
           <p className="muted">На сегодня активных назначений нет.</p>
         ) : (
           groups.current.map((assignment) => {
-            const view = assignmentCompletionView(completions, assignment.id, today);
+            const view = assignmentCompletionView(
+              completions,
+              assignment.id,
+              today,
+            );
             return (
               <div key={assignment.id} className="assignment-item">
                 <div className="row" style={{ alignItems: "center" }}>
@@ -200,7 +228,12 @@ function AssignmentSections({
                 <p className="muted">
                   {assignment.start_date} — {assignment.end_date}
                 </p>
-                {assignment.instruction !== null ? <p>{assignment.instruction}</p> : null}
+                {assignment.instruction !== null ? (
+                  <p>{assignment.instruction}</p>
+                ) : null}
+                {assignment.detailed_instruction && (
+                  <InstructionLink onClick={() => onPreview(assignment)} />
+                )}
                 {treatmentActive ? (
                   <button
                     type="button"
@@ -212,7 +245,9 @@ function AssignmentSections({
                   </button>
                 ) : null}
                 {view.historicalDates.length > 0 ? (
-                  <p className="muted">Отметки: {view.historicalDates.join(", ")}</p>
+                  <p className="muted">
+                    Отметки: {view.historicalDates.join(", ")}
+                  </p>
                 ) : null}
               </div>
             );
@@ -232,7 +267,12 @@ function AssignmentSections({
               <p className="muted">
                 {assignment.start_date} — {assignment.end_date}
               </p>
-              {assignment.instruction !== null ? <p>{assignment.instruction}</p> : null}
+              {assignment.instruction !== null ? (
+                <p>{assignment.instruction}</p>
+              ) : null}
+              {assignment.detailed_instruction && (
+                <InstructionLink onClick={() => onPreview(assignment)} />
+              )}
               {treatmentActive ? (
                 <button
                   type="button"
@@ -273,6 +313,11 @@ function AssignmentSections({
                       <Badge tone="neutral">
                         {assignmentHistoryLabel(assignment, today)}
                       </Badge>
+                      {assignment.detailed_instruction && (
+                        <InstructionLink
+                          onClick={() => onPreview(assignment)}
+                        />
+                      )}
                     </li>
                   );
                 })}
@@ -282,5 +327,16 @@ function AssignmentSections({
         )}
       </div>
     </>
+  );
+}
+
+function InstructionLink({ onClick }: { onClick: () => void }) {
+  return (
+    <div className="assignment-instruction-link">
+      <Badge tone="info">Есть подробная инструкция</Badge>
+      <button type="button" className="secondary" onClick={onClick}>
+        Посмотреть
+      </button>
+    </div>
   );
 }

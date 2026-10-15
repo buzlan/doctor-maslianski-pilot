@@ -42,6 +42,7 @@ export type Database = {
           created_at: string;
           end_date: string;
           id: string;
+          detailed_instruction: Json | null;
           instruction: string | null;
           start_date: string;
           status: Database["public"]["Enums"]["assignment_status"];
@@ -55,6 +56,7 @@ export type Database = {
           created_at?: string;
           end_date: string;
           id?: string;
+          detailed_instruction?: Json | null;
           instruction?: string | null;
           start_date: string;
           status?: Database["public"]["Enums"]["assignment_status"];
@@ -68,6 +70,7 @@ export type Database = {
           created_at?: string;
           end_date?: string;
           id?: string;
+          detailed_instruction?: Json | null;
           instruction?: string | null;
           start_date?: string;
           status?: Database["public"]["Enums"]["assignment_status"];
@@ -105,6 +108,7 @@ export type Database = {
           created_at: string;
           icon_storage_path: string | null;
           id: string;
+          detailed_instruction: Json | null;
           instruction: string | null;
           sort_order: number;
           status: Database["public"]["Enums"]["catalog_item_status"];
@@ -116,6 +120,7 @@ export type Database = {
           created_at?: string;
           icon_storage_path?: string | null;
           id?: string;
+          detailed_instruction?: Json | null;
           instruction?: string | null;
           sort_order?: number;
           status?: Database["public"]["Enums"]["catalog_item_status"];
@@ -127,6 +132,7 @@ export type Database = {
           created_at?: string;
           icon_storage_path?: string | null;
           id?: string;
+          detailed_instruction?: Json | null;
           instruction?: string | null;
           sort_order?: number;
           status?: Database["public"]["Enums"]["catalog_item_status"];
